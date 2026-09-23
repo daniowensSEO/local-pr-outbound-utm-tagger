@@ -33,6 +33,13 @@ function outbound_utm_boot() {
 
 	$settings = Outbound_UTM_Settings::get();
 
+	// Nothing to do until an admin switches tagging on. Gating here means page mode
+	// never registers the output-buffer filter (whose mere presence makes WordPress
+	// buffer the whole page) while the plugin is off — which is the default state.
+	if ( empty( $settings['enabled'] ) ) {
+		return;
+	}
+
 	if ( 'click' === $settings['mode'] ) {
 		Outbound_UTM_Click::init();
 		return;

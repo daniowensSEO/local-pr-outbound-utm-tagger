@@ -288,9 +288,12 @@ final class Outbound_UTM_Tagger {
 		}
 
 		$scheme = strtolower( (string) wp_parse_url( $href, PHP_URL_SCHEME ) );
-		if ( 'http' !== $scheme && 'https' !== $scheme ) {
-			// Left alone: email, phone, and anything without http or https written out,
-			// which covers relative links and ones written as //example.com/page.
+
+		// Protocol-relative links (//example.com/page) point at another site and take on
+		// the page's own scheme, so they are treated as external and tagged, matching the
+		// JavaScript mode. Email, phone, and true relative paths are still left alone.
+		$protocol_relative = ( '' === $scheme && 0 === strpos( $href, '//' ) );
+		if ( ! $protocol_relative && 'http' !== $scheme && 'https' !== $scheme ) {
 			return null;
 		}
 
