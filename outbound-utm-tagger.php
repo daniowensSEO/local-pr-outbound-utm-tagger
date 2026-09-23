@@ -4,7 +4,7 @@
  * Description:       Adds UTM parameters to links that point to other websites. Stage 1: sitewide defaults, placeholders, and the skip list.
  * Version:           0.2.1
  * Requires at least: 6.9
- * Requires PHP:      7.4
+ * Requires PHP:      8.0
  * License:           GPLv2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       outbound-utm-tagger
@@ -54,6 +54,6 @@ function outbound_utm_version_notice() {
 		return;
 	}
 	echo '<div class="notice notice-warning"><p>';
-	echo esc_html( 'Outbound UTM Tagger needs WordPress 6.9 or newer. Nothing is being tagged until this site is updated.' );
+	esc_html_e( 'Outbound UTM Tagger needs WordPress 6.9 or newer. Nothing is being tagged until this site is updated.', 'outbound-utm-tagger' );
 	echo '</p></div>';
 }
