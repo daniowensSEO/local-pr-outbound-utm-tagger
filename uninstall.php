@@ -25,7 +25,8 @@ if ( is_multisite() ) {
 			restore_current_blog();
 		}
 		$outbound_utm_offset += $outbound_utm_page;
-	} while ( count( $outbound_utm_site_ids ) === $outbound_utm_page );
+		$outbound_utm_more    = count( $outbound_utm_site_ids ) === $outbound_utm_page;
+	} while ( $outbound_utm_more );
 } else {
 	delete_option( 'outbound_utm_settings' );
 }
