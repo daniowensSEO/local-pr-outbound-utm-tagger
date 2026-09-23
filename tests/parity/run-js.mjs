@@ -36,7 +36,7 @@ function runCase(c) {
 		outboundUtmConfig: {
 			params,
 			internal: [site],
-			exclude: c.skip,
+			skipHosts: c.skip,
 			skipClass: 'noutm',
 			tidy: c.tidy ? 1 : 0,
 		},

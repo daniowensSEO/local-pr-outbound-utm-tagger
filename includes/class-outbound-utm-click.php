@@ -47,7 +47,7 @@ final class Outbound_UTM_Click {
 		$config = array(
 			'params'    => $params,
 			'internal'  => Outbound_UTM_Tagger::internal_hosts(),
-			'exclude'   => array_values( (array) $settings['skip'] ),
+			'skipHosts' => array_values( (array) $settings['skip'] ),
 			'skipClass' => Outbound_UTM_Tagger::SKIP_CLASS,
 			'tidy'      => empty( $settings['tidy'] ) ? 0 : 1,
 		);

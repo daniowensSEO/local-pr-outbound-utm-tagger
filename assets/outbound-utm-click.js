@@ -17,7 +17,7 @@
 	}
 
 	var internal = [];
-	var exclude = [];
+	var skipHosts = [];
 	var skipSelector = '.noutm';
 	var tidy = false;
 
@@ -138,7 +138,7 @@
 		}
 
 		var host = normalizeHost(url.hostname);
-		if (!host || matchesDomain(host, internal) || matchesDomain(host, exclude) || hasUtm(url)) {
+		if (!host || matchesDomain(host, internal) || matchesDomain(host, skipHosts) || hasUtm(url)) {
 			return;
 		}
 
@@ -168,7 +168,7 @@
 
 	function init() {
 		internal = (config.internal || []).concat([window.location.hostname]).map(normalizeHost).filter(Boolean);
-		exclude = (config.exclude || []).map(normalizeHost).filter(Boolean);
+		skipHosts = (config.skipHosts || []).map(normalizeHost).filter(Boolean);
 		if (config.skipClass) {
 			skipSelector = '.' + config.skipClass;
 		}
