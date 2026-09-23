@@ -15,7 +15,19 @@ final class Outbound_UTM_Tagger {
 
 	/** Elements that hold nothing, so they never open a skipped region. */
 	private static $void_tags = array(
-		'AREA', 'BASE', 'BR', 'COL', 'EMBED', 'HR', 'IMG', 'INPUT', 'LINK', 'META', 'SOURCE', 'TRACK', 'WBR',
+		'AREA',
+		'BASE',
+		'BR',
+		'COL',
+		'EMBED',
+		'HR',
+		'IMG',
+		'INPUT',
+		'LINK',
+		'META',
+		'SOURCE',
+		'TRACK',
+		'WBR',
 	);
 
 	/** Gives up on a skipped region after this many tags, in case its closing tag is missing. */
