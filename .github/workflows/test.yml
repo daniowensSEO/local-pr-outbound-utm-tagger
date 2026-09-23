@@ -1,0 +1,37 @@
+name: Test
+
+# Runs the WordPress.org quality gates on every push / PR.
+# NOTE: action versions are pinned to major tags for readability; harden to full
+# commit SHAs (@<sha> # vX.Y.Z) before this repo carries deploy secrets.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (PHPCS + WordPress-Coding-Standards)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-publish
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      - name: Run PHPCS
+        run: composer run lint
+
+  plugin-check:
+    name: WordPress Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Plugin Check
+        uses: WordPress/plugin-check-action@v1
