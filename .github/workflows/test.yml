@@ -33,5 +33,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build a clean distributable copy (only what ships to WP.org)
+        run: |
+          mkdir -p build/outbound-utm-tagger
+          rsync -a \
+            --exclude='.git' --exclude='.github' --exclude='.wordpress-org' \
+            --exclude='tests' --exclude='vendor' --exclude='node_modules' \
+            --exclude='.distignore' --exclude='.gitignore' --exclude='.editorconfig' \
+            --exclude='composer.json' --exclude='composer.lock' \
+            --exclude='phpcs.xml.dist' --exclude='phpunit.xml.dist' \
+            --exclude='build' \
+            ./ build/outbound-utm-tagger/
       - name: Run Plugin Check
         uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: ./build/outbound-utm-tagger
+          slug: outbound-utm-tagger
