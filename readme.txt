@@ -53,6 +53,10 @@ Yes. Both modes skip the same links and produce the same UTM values, including v
 = Does it collect or send any data? =
 No. The plugin makes no external requests and stores nothing about your visitors. It only adds parameters to links on your pages, and every value describes the page, never the person viewing it.
 
+== Screenshots ==
+
+1. The settings screen: switch tagging on, choose HTML or JavaScript mode, set the UTM values and placeholders, and list domains to skip.
+
 == Changelog ==
 
 = 0.2.2 =
