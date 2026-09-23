@@ -1,0 +1,310 @@
+{
+	"//": "Shared HTML/JS parity cases. Each runner feeds these through its own mode and must produce exactly `expected` (null = link left alone). Non-{link_text} field values must already be tidy-stable (lowercase, no spaces), because the JS runner receives them as-is, the way click mode receives values the server has already resolved.",
+	"site": "example.org",
+	"cases": [
+		{
+			"name": "external link",
+			"href": "https://ext.com/p",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_source=site"
+		},
+		{
+			"name": "protocol-relative external link",
+			"href": "//cdn.ext.com/x",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": "//cdn.ext.com/x?utm_source=site"
+		},
+		{
+			"name": "existing query and fragment",
+			"href": "https://ext.com/p?a=1#frag",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?a=1&utm_source=site#frag"
+		},
+		{
+			"name": "trailing question mark",
+			"href": "https://ext.com/p?",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_source=site"
+		},
+		{
+			"name": "own site",
+			"href": "https://example.org/x",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": null
+		},
+		{
+			"name": "own site with www",
+			"href": "https://www.example.org/x",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": null
+		},
+		{
+			"name": "skip-list subdomain",
+			"href": "https://sub.skip.com/x",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [
+				"skip.com"
+			],
+			"expected": null
+		},
+		{
+			"name": "IDN: unicode skip entry, punycode link",
+			"href": "https://xn--mnchen-3ya.de/",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [
+				"münchen.de"
+			],
+			"expected": null
+		},
+		{
+			"name": "IDN: punycode skip entry, unicode link",
+			"href": "https://münchen.de/",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [
+				"xn--mnchen-3ya.de"
+			],
+			"expected": null
+		},
+		{
+			"name": "IDN: punycode external link is tagged",
+			"href": "https://xn--bcher-kva.example/",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": "https://xn--bcher-kva.example/?utm_source=site"
+		},
+		{
+			"name": "IDN: unicode external link is tagged as written",
+			"href": "https://bücher.example/",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": "https://bücher.example/?utm_source=site"
+		},
+		{
+			"name": "mailto",
+			"href": "mailto:a@b.com",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": null
+		},
+		{
+			"name": "relative path",
+			"href": "/relative",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": null
+		},
+		{
+			"name": "already has utm",
+			"href": "https://ext.com/p?utm_medium=x",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": null
+		},
+		{
+			"name": "in-page anchor",
+			"href": "#top",
+			"text": "link",
+			"tidy": false,
+			"fields": {
+				"utm_source": "site"
+			},
+			"skip": [],
+			"expected": null
+		},
+		{
+			"name": "link text: non-breaking space",
+			"href": "https://ext.com/p",
+			"text": "Hello World",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=Hello%20World"
+		},
+		{
+			"name": "link text: non-breaking space, tidy",
+			"href": "https://ext.com/p",
+			"text": "Hello World",
+			"tidy": true,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=hello-world"
+		},
+		{
+			"name": "link text: exclamation",
+			"href": "https://ext.com/p",
+			"text": "Buy now!",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=Buy%20now%21"
+		},
+		{
+			"name": "link text: apostrophe, parens, asterisks",
+			"href": "https://ext.com/p",
+			"text": "Tom's (deal) *new*",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=Tom%27s%20%28deal%29%20%2Anew%2A"
+		},
+		{
+			"name": "link text: placeholder-looking text stays literal",
+			"href": "https://ext.com/p",
+			"text": "{slug}",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=%7Bslug%7D"
+		},
+		{
+			"name": "link text: 70 emoji cut to 60 characters",
+			"href": "https://ext.com/p",
+			"text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80%F0%9F%98%80"
+		},
+		{
+			"name": "link text: multibyte, only space before char 21 keeps full cut",
+			"href": "https://ext.com/p",
+			"text": "ééééééééééééééé aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		},
+		{
+			"name": "link text: long text cut at last space",
+			"href": "https://ext.com/p",
+			"text": "word word word word word word word word word word word word word word word word word word word word",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=word%20word%20word%20word%20word%20word%20word%20word%20word%20word%20word%20word"
+		},
+		{
+			"name": "link text: mixed ASCII whitespace",
+			"href": "https://ext.com/p",
+			"text": "  Hello \t\n World  ",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=Hello%20World"
+		},
+		{
+			"name": "link text: em space",
+			"href": "https://ext.com/p",
+			"text": "A B",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=A%20B"
+		},
+		{
+			"name": "link text: slash stays readable",
+			"href": "https://ext.com/p",
+			"text": "a/b",
+			"tidy": false,
+			"fields": {
+				"utm_content": "{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_content=a/b"
+		},
+		{
+			"name": "fixed + link text fields, tidy",
+			"href": "https://ext.com/p",
+			"text": "Hi There",
+			"tidy": true,
+			"fields": {
+				"utm_source": "site",
+				"utm_content": "pre-{link_text}"
+			},
+			"skip": [],
+			"expected": "https://ext.com/p?utm_source=site&utm_content=pre-hi-there"
+		}
+	]
+}

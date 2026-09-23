@@ -68,19 +68,27 @@
 			.replace(/^-+|-+$/g, '');
 	}
 
+	// Counted in characters (code points), not UTF-16 units, so an emoji counts once
+	// and the cut lands in the same place as the PHP side's mb_ functions.
 	function linkText(link) {
 		var text = String(link.textContent || '').replace(/\s+/g, ' ').trim();
-		if (text.length > 60) {
-			var cut = text.slice(0, 60);
+		var chars = Array.from(text);
+		if (chars.length > 60) {
+			var cut = chars.slice(0, 60);
 			var gap = cut.lastIndexOf(' ');
-			text = gap > 20 ? cut.slice(0, gap) : cut;
+			text = (gap > 20 ? cut.slice(0, gap) : cut).join('');
 		}
 		return tidy ? tidyValue(text) : text;
 	}
 
+	// Matches PHP's rawurlencode(): encodeURIComponent() leaves ! ' ( ) * as they are,
+	// so those are encoded too. A slash stays readable, as on the PHP side.
 	function encodeValue(value) {
-		// A slash is allowed inside a link's parameters, so it stays readable.
-		return encodeURIComponent(value).replace(/%2F/g, '/');
+		return encodeURIComponent(value)
+			.replace(/[!'()*]/g, function (c) {
+				return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+			})
+			.replace(/%2F/g, '/');
 	}
 
 	function buildQuery(link) {

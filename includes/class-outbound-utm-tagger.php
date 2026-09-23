@@ -204,13 +204,15 @@ final class Outbound_UTM_Tagger {
 
 	/** Collapses whitespace and keeps link text short enough to be a usable value. */
 	private static function clean_link_text( $text ) {
-		$text = trim( (string) preg_replace( '/\s+/u', ' ', (string) $text ) );
+		// Lengths and positions are counted in characters (code points), exactly as the
+		// JavaScript mode counts them, so both modes cut long link text at the same place.
+		$text = trim( (string) preg_replace( Outbound_UTM_Context::SPACE, ' ', (string) $text ) );
 		if ( mb_strlen( $text ) <= 60 ) {
 			return $text;
 		}
 		$cut = mb_substr( $text, 0, 60 );
-		$gap = strrpos( $cut, ' ' );
-		return ( false !== $gap && $gap > 20 ) ? substr( $cut, 0, $gap ) : $cut;
+		$gap = mb_strrpos( $cut, ' ' );
+		return ( false !== $gap && $gap > 20 ) ? mb_substr( $cut, 0, $gap ) : $cut;
 	}
 
 	/** Fills the placeholders in every field. */
@@ -267,7 +269,8 @@ final class Outbound_UTM_Tagger {
 	/** True when the host is one of the domains, or a subdomain of one. */
 	private static function host_matches( $host, array $domains ) {
 		foreach ( $domains as $domain ) {
-			$domain = (string) $domain;
+			// Normalized here as well as on save, so entries stored before this existed match too.
+			$domain = Outbound_UTM_Context::ascii_host( $domain );
 			if ( '' === $domain ) {
 				continue;
 			}
@@ -301,7 +304,7 @@ final class Outbound_UTM_Tagger {
 		if ( '' === $host ) {
 			return null;
 		}
-		$host = rtrim( $host, '.' );
+		$host = Outbound_UTM_Context::ascii_host( rtrim( $host, '.' ) );
 		if ( 0 === strpos( $host, 'www.' ) ) {
 			$host = substr( $host, 4 );
 		}

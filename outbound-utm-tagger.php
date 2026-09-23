@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Outbound UTM Tagger
  * Description:       Adds UTM parameters to links that point to other websites. Stage 1: sitewide defaults, placeholders, and the skip list.
- * Version:           0.2.1
+ * Version:           0.2.2
  * Requires at least: 6.9
  * Requires PHP:      8.0
  * License:           GPLv2 or later

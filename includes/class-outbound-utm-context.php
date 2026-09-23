@@ -13,6 +13,20 @@ defined( 'ABSPATH' ) || exit;
 
 final class Outbound_UTM_Context {
 
+	/**
+	 * Any run of whitespace, matching what JavaScript's \s matches: ASCII whitespace,
+	 * every Unicode space separator (including the non-breaking space), and the BOM.
+	 * PHP's \s alone misses the non-breaking space even with the u modifier.
+	 */
+	const SPACE = '/[\s\p{Z}\x{FEFF}]+/u';
+
+	/**
+	 * Primary term slugs already looked up this request, keyed by taxonomy.
+	 *
+	 * @var array
+	 */
+	private static $terms = array();
+
 	/** Placeholders this plugin understands. Anything else is left alone. */
 	private static $known = array(
 		'slug',
@@ -63,10 +77,10 @@ final class Outbound_UTM_Context {
 			return self::finish( $value );
 		}
 
-		if ( ! $defer && false !== strpos( $value, '{link_text}' ) ) {
-			$value = str_replace( '{link_text}', (string) $link_text, $value );
-		}
-
+		// Page placeholders are resolved first, with {link_text} held back, and the link's
+		// own text goes in last. That way text taken from a link can never be read as a
+		// placeholder itself, which matches the JavaScript mode, where the browser adds
+		// the link text after the server has resolved everything else.
 		if ( false !== strpos( $value, '{term:' ) ) {
 			$value = (string) preg_replace_callback(
 				'/\{term:([A-Za-z0-9_-]+)\}/',
@@ -79,9 +93,9 @@ final class Outbound_UTM_Context {
 
 		$value = (string) preg_replace_callback(
 			'/\{([a-z_]+)\}/',
-			function ( $matches ) use ( $defer ) {
-				// In click mode the browser fills this one in, so it stays put.
-				if ( $defer && 'link_text' === $matches[1] ) {
+			function ( $matches ) {
+				// Filled in last (below), or by the browser in click mode.
+				if ( 'link_text' === $matches[1] ) {
 					return $matches[0];
 				}
 				// Anything this plugin does not know stays as it was typed.
@@ -89,6 +103,10 @@ final class Outbound_UTM_Context {
 			},
 			$value
 		);
+
+		if ( ! $defer ) {
+			$value = str_replace( '{link_text}', (string) $link_text, $value );
+		}
 
 		return self::finish( $value );
 	}
@@ -107,7 +125,7 @@ final class Outbound_UTM_Context {
 	private static function tidy( $value ) {
 		$value = wp_strip_all_tags( $value );
 		$value = function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
-		$value = (string) preg_replace( '/\s+/u', '-', $value );
+		$value = (string) preg_replace( self::SPACE, '-', $value );
 		$value = (string) preg_replace( '/-{2,}/', '-', $value );
 		return trim( $value, '-' );
 	}
@@ -261,11 +279,46 @@ final class Outbound_UTM_Context {
 	}
 
 	/**
+	 * A host in the ASCII form browsers use, so "münchen.de" and "xn--mnchen-3ya.de"
+	 * compare as the same domain, the way the JavaScript mode's URL parser sees them.
+	 * Falls back to the host as given when the intl extension is not installed.
+	 *
+	 * @param string $host A hostname, possibly internationalized.
+	 * @return string
+	 */
+	public static function ascii_host( $host ) {
+		$host = strtolower( trim( (string) $host ) );
+		if ( '' === $host || ! preg_match( '/[^\x00-\x7F]/', $host ) || ! function_exists( 'idn_to_ascii' ) ) {
+			return $host;
+		}
+		$ascii = idn_to_ascii( $host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 );
+		return ( is_string( $ascii ) && '' !== $ascii ) ? strtolower( $ascii ) : $host;
+	}
+
+	/**
+	 * The primary term of a taxonomy for the current post, worked out once per request.
+	 * A field that mixes {term:...} with {link_text} is resolved once per link, so
+	 * without this the same lookup would repeat for every link on the page.
+	 *
+	 * @param string $taxonomy Taxonomy name.
+	 * @return string
+	 */
+	private static function primary_term_slug( $taxonomy ) {
+		if ( ! array_key_exists( $taxonomy, self::$terms ) ) {
+			self::$terms[ $taxonomy ] = self::lookup_primary_term_slug( $taxonomy );
+		}
+		return self::$terms[ $taxonomy ];
+	}
+
+	/**
 	 * The primary term of a taxonomy for the current post, falling back to its first term.
 	 *
 	 * Yoast and Rank Math both store a primary term, so either one is used when present.
+	 *
+	 * @param string $taxonomy Taxonomy name.
+	 * @return string
 	 */
-	private static function primary_term_slug( $taxonomy ) {
+	private static function lookup_primary_term_slug( $taxonomy ) {
 		// The queried object, not get_post(), because this runs after the template
 		// has finished and the global post may belong to a secondary loop.
 		$post = get_queried_object();

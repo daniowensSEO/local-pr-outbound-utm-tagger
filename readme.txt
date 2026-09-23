@@ -4,7 +4,7 @@ Tags: utm, analytics, outbound links, campaign tracking, referral
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,14 +45,29 @@ No. Your site's domain (and its www variant) are always skipped, plus any domain
 No. Any link that already carries a `utm_` parameter is left exactly as written.
 
 = Does it require WordPress 6.9? =
-HTML mode uses a WordPress 6.9 feature, so on older versions it shows an admin notice and does nothing. JavaScript mode's requirements are lighter.
+Yes. HTML mode is built on a feature added in WordPress 6.9, so the plugin requires WordPress 6.9 or newer in both modes.
+
+= Do HTML mode and JavaScript mode tag links the same way? =
+Yes. Both modes skip the same links and produce the same UTM values, including values built from link text. Only the moment the tags are added differs.
+
+= Does it collect or send any data? =
+No. The plugin makes no external requests and stores nothing about your visitors. It only adds parameters to links on your pages, and every value describes the page, never the person viewing it.
 
 == Changelog ==
+
+= 0.2.2 =
+* Page mode no longer buffers the whole page while tagging is switched off.
+* Protocol-relative links to other sites (//example.com/page) are now tagged in HTML mode, as they already were in JavaScript mode.
+* International domain names match the skip list whether they are written in Unicode or punycode.
+* HTML and JavaScript modes now produce identical values from link text: the same handling of non-breaking spaces, punctuation, emoji, and long text.
+* Text inside a link can no longer be mistaken for a placeholder.
+* {term:...} placeholders are looked up once per page instead of once per link.
+* Deleting the plugin on a multisite network removes its settings from every site.
 
 = 0.2.1 =
 * Stage 1: sitewide defaults, placeholders, HTML and JavaScript modes, and the skip list.
 
 == Upgrade Notice ==
 
-= 0.2.1 =
-Initial public release.
+= 0.2.2 =
+First public release on WordPress.org.

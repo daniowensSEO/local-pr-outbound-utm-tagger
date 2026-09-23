@@ -7,7 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class Outbound_UTM_Settings {
 
-	const VERSION = '0.2.1';
+	const VERSION = '0.2.2';
 	const OPTION  = 'outbound_utm_settings';
 	const GROUP  = 'outbound_utm_tagger';
 	const PAGE   = 'outbound-utm-tagger';
@@ -169,6 +169,10 @@ final class Outbound_UTM_Settings {
 			return '';
 		}
 		$host = (string) preg_replace( '/^(\*\.|www\.)/', '', rtrim( $host, '.' ) );
+
+		// International domains are stored in their ASCII (punycode) form when the intl
+		// extension is available, so they match however a link happens to write them.
+		$host = Outbound_UTM_Context::ascii_host( $host );
 
 		// Letters, digits, dots and hyphens, plus non ASCII for international domains.
 		return preg_match( '/^[a-z0-9.\-\x80-\xff]+$/', $host ) ? $host : '';
