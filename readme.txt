@@ -1,5 +1,5 @@
 === Outbound UTM Tagger ===
-Contributors: TODO-your-wporg-username
+Contributors: dannanelli
 Tags: utm, analytics, outbound links, campaign tracking, referral
 Requires at least: 6.9
 Tested up to: 7.1
