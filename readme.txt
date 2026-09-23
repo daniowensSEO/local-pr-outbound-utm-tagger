@@ -63,9 +63,10 @@ No. The plugin makes no external requests and stores nothing about your visitors
 * Text inside a link can no longer be mistaken for a placeholder.
 * {term:...} placeholders are looked up once per page instead of once per link.
 * Deleting the plugin on a multisite network removes its settings from every site.
+* The settings screen's styles now load as a stylesheet on that screen only.
 
 = 0.2.1 =
-* Stage 1: sitewide defaults, placeholders, HTML and JavaScript modes, and the skip list.
+* First version: sitewide defaults, placeholders, HTML and JavaScript modes, and the skip list.
 
 == Upgrade Notice ==
 

@@ -19,6 +19,13 @@ final class Outbound_UTM_Settings {
 	 */
 	private static $cache = null;
 
+	/**
+	 * Hook suffix of the settings screen, so its stylesheet loads there and nowhere else.
+	 *
+	 * @var string
+	 */
+	private static $hook = '';
+
 	public static function init() {
 		// update_option fires on later saves, add_option on the very first one.
 		add_action( 'update_option_' . self::OPTION, array( __CLASS__, 'after_save' ) );
@@ -27,6 +34,7 @@ final class Outbound_UTM_Settings {
 		if ( is_admin() ) {
 			add_action( 'admin_init', array( __CLASS__, 'register' ) );
 			add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+			add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 			add_action( 'admin_notices', array( __CLASS__, 'cache_notice' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( OUTBOUND_UTM_FILE ), array( __CLASS__, 'action_links' ) );
 		}
@@ -178,8 +186,25 @@ final class Outbound_UTM_Settings {
 		return preg_match( '/^[a-z0-9.\-\x80-\xff]+$/', $host ) ? $host : '';
 	}
 
+	/**
+	 * Loads the settings screen's stylesheet, on that screen only.
+	 *
+	 * @param string $hook_suffix The current admin page.
+	 */
+	public static function enqueue_styles( $hook_suffix ) {
+		if ( '' === self::$hook || self::$hook !== $hook_suffix ) {
+			return;
+		}
+		wp_enqueue_style(
+			'outbound-utm-admin',
+			plugins_url( 'assets/outbound-utm-admin.css', OUTBOUND_UTM_FILE ),
+			array(),
+			self::VERSION
+		);
+	}
+
 	public static function menu() {
-		add_options_page(
+		self::$hook = (string) add_options_page(
 			__( 'Outbound UTM Tagger', 'outbound-utm-tagger' ),
 			__( 'Outbound UTMs', 'outbound-utm-tagger' ),
 			'manage_options',
@@ -204,7 +229,7 @@ final class Outbound_UTM_Settings {
 		$help     = array(
 			'utm_source'   => __( 'Your domain, so the other site can tell who sent the visit. Analytics tools expect this one to be filled in.', 'outbound-utm-tagger' ),
 			'utm_medium'   => __( 'referral files the visit under the Referral channel in the other site\'s Google Analytics.', 'outbound-utm-tagger' ),
-			'utm_campaign' => __( 'Left blank here for now. Rules will set this per part of your site in stage 2.', 'outbound-utm-tagger' ),
+			'utm_campaign' => __( 'Optional. Names the campaign, for example a section of your site. Leave it blank and it stays off the link.', 'outbound-utm-tagger' ),
 			'utm_term'     => __( 'Rarely used. It was built for paid search keywords.', 'outbound-utm-tagger' ),
 			'utm_content'  => __( 'Tells the other site which of your pages sent the click. {slug} fills in the page slug for you.', 'outbound-utm-tagger' ),
 		);
@@ -224,20 +249,10 @@ final class Outbound_UTM_Settings {
 		);
 		?>
 		<div class="wrap">
-			<style>
-				.outbound-utm-toggle { position: relative; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
-				.outbound-utm-toggle input { position: absolute; top: 0; left: 0; width: 44px; height: 24px; margin: 0; opacity: 0; cursor: pointer; }
-				.outbound-utm-track { display: inline-block; position: relative; width: 44px; height: 24px; border-radius: 12px; background: #8c8f94; }
-				.outbound-utm-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
-				.outbound-utm-toggle input:checked + .outbound-utm-track { background: #00a32a; }
-				.outbound-utm-toggle input:checked + .outbound-utm-track .outbound-utm-knob { left: 23px; }
-				.outbound-utm-toggle input:focus + .outbound-utm-track { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2271b1; }
-				.outbound-utm-toggle-text { font-size: 14px; font-weight: 600; }
-			</style>
 			<h1><?php esc_html_e( 'Outbound UTM Tagger', 'outbound-utm-tagger' ); ?></h1>
 			<p><?php esc_html_e( 'Adds these UTM parameters to links that point to other websites. Links that already have UTM parameters are never changed.', 'outbound-utm-tagger' ); ?></p>
 			<div class="notice notice-info inline" style="margin: 12px 0;">
-				<p><?php esc_html_e( 'Stage 1 of the build: sitewide defaults only. Rules, per page settings, and the admin bar readout come later. Tagging starts switched off, so activating the plugin changes nothing until you turn it on below and save.', 'outbound-utm-tagger' ); ?></p>
+				<p><?php esc_html_e( 'Tagging starts switched off, so activating the plugin changes nothing until you turn it on below and save.', 'outbound-utm-tagger' ); ?></p>
 			</div>
 
 			<form method="post" action="options.php">
