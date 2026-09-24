@@ -1,22 +1,51 @@
 name: Test
 
-# Runs the WordPress.org quality gates and the HTML/JS parity tests on every push / PR.
-# Third-party actions are pinned to full commit SHAs (supply-chain safety); the
-# trailing comment records the release each SHA corresponds to.
+# Runs the WordPress.org quality gates and the HTML/JS parity tests on every branch push / PR,
+# and as the gate inside deploy-wporg.yml (workflow_call). Third-party actions are pinned to full
+# commit SHAs (supply-chain safety); the trailing comment records the release each SHA is.
+# Runners are pinned to ubuntu-24.04 so the ubuntu-latest move to 26.04 can't change them silently.
 
 on:
   push:
+    branches: ['**']
   pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to test (defaults to the triggering commit).'
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint (PHPCS + WordPress-Coding-Standards)
-    runs-on: ubuntu-latest
+  versions:
+    name: Version numbers match
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Header Version, readme Stable tag and class VERSION agree
+        run: |
+          header=$(sed -n 's/^[ *]*Version:[[:space:]]*//p' outbound-utm-tagger.php | head -1 | tr -d '[:space:]')
+          stable=$(sed -n 's/^Stable tag:[[:space:]]*//p' readme.txt | head -1 | tr -d '[:space:]')
+          class=$(sed -n "s/.*const VERSION = '\([^']*\)'.*/\1/p" includes/class-outbound-utm-settings.php | head -1)
+          echo "header=$header stable=$stable class=$class"
+          if [ -z "$header" ] || [ "$header" != "$stable" ] || [ "$header" != "$class" ]; then
+            echo "::error::Version mismatch: header=$header, readme Stable tag=$stable, class VERSION=$class"
+            exit 1
+          fi
+
+  lint:
+    name: Lint (PHPCS + WordPress-Coding-Standards)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.3'
@@ -30,13 +59,15 @@ jobs:
 
   parity:
     name: HTML/JS parity (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.3', '8.4']
+        php: ['8.0', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
@@ -44,27 +75,47 @@ jobs:
           coverage: none
       - name: HTML mode (PHP)
         run: php tests/parity/run-php.php
+
+  parity-js:
+    name: HTML/JS parity (Node ${{ matrix.node }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 24 = current LTS; the .nvmrc line (26) is what local development runs.
+        node: ['24', 'nvmrc']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node != 'nvmrc' && matrix.node || '' }}
+          node-version-file: ${{ matrix.node == 'nvmrc' && '.nvmrc' || '' }}
       - name: JavaScript mode (Node)
         run: node tests/parity/run-js.mjs
 
   plugin-check:
-    name: WordPress Plugin Check
-    runs-on: ubuntu-latest
+    name: WordPress Plugin Check (WP ${{ matrix.wp }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        wp: ['latest', 'trunk']
+    # trunk is an early warning for the next WordPress release; it never blocks.
+    continue-on-error: ${{ matrix.wp == 'trunk' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build a clean distributable copy (only what ships to WP.org)
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Build a clean distributable copy (same .distignore filter as the WP.org deploy)
         run: |
           mkdir -p build/outbound-utm-tagger
-          rsync -a \
-            --exclude='.git' --exclude='.github' --exclude='.wordpress-org' \
-            --exclude='tests' --exclude='vendor' --exclude='node_modules' \
-            --exclude='.distignore' --exclude='.gitignore' --exclude='.editorconfig' \
-            --exclude='composer.json' --exclude='composer.lock' \
-            --exclude='phpcs.xml.dist' --exclude='phpunit.xml.dist' \
-            --exclude='build' \
-            ./ build/outbound-utm-tagger/
+          rsync -rc --exclude-from=.distignore ./ build/outbound-utm-tagger/
+          find build/outbound-utm-tagger -type f | sort
       - name: Run Plugin Check
         uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
           build-dir: ./build/outbound-utm-tagger
           slug: outbound-utm-tagger
+          wp-version: ${{ matrix.wp }}

@@ -1,0 +1,11 @@
+# Opens a PR when a pinned GitHub Action has a new release (keeps the SHA pins current).
+# Nothing merges automatically; each PR runs the Test workflow and waits for a human.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
