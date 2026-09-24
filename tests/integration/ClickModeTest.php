@@ -142,6 +142,20 @@ class ClickModeTest extends Outbound_UTM_TestCase {
 		$this->assertFalse( wp_script_is( Outbound_UTM_Click::HANDLE, 'registered' ) );
 	}
 
+	public function test_not_enqueued_in_embeds() {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Embedded Elsewhere' ) );
+		$this->enable_click_mode();
+
+		// The oEmbed iframe another site shows for this post.
+		$this->visit( get_post_embed_url( $post_id ) );
+		$this->assertTrue( is_embed() );
+		$this->assertSame( $post_id, get_queried_object_id() );
+		do_action( 'wp_enqueue_scripts' );
+		Outbound_UTM_Click::enqueue();
+
+		$this->assertFalse( wp_script_is( Outbound_UTM_Click::HANDLE, 'registered' ) );
+	}
+
 	public function test_not_enqueued_when_every_field_is_empty() {
 		$this->enable_click_mode(
 			array(

@@ -64,14 +64,33 @@ class SettingsSanitizeTest extends Outbound_UTM_TestCase {
 	}
 
 	public function test_mode_sent_as_an_array_falls_back_to_page_without_a_php_warning() {
-		$this->markTestSkipped(
-			'Bug found by this test (left unfixed while 0.2.2 is in WordPress.org review): sanitize() does '
-			. '(string) $input[\'mode\'], so a form posting mode[] raises the PHP warning "Array to string conversion" '
-			. '(includes/class-outbound-utm-settings.php:130). The value saved is still "page".'
+		// A tampered form can post outbound_utm_settings[mode][]=click. PHP errors raised while
+		// sanitizing are collected here instead of being turned into a test error.
+		$errors = array();
+		set_error_handler(
+			static function ( $errno, $errstr ) use ( &$errors ) {
+				$errors[] = $errstr;
+				return true;
+			}
 		);
+		try {
+			$clean = self::sanitize( array( 'mode' => array( 'click' ) ) );
+		} finally {
+			restore_error_handler();
+		}
 
-		// A tampered form can post outbound_utm_settings[mode][]=click.
-		$this->assertSame( 'page', self::sanitize( array( 'mode' => array( 'click' ) ) )['mode'] );
+		$this->assertSame( 'page', $clean['mode'] );
+
+		// Skipped only while the plugin still gives the known wrong answer; once fixed, this runs for real.
+		if ( array( 'Array to string conversion' ) === $errors ) {
+			$this->markTestSkipped(
+				'Bug found by this test (left unfixed while 0.2.2 is in WordPress.org review): sanitize() does '
+				. '(string) $input[\'mode\'], so a form posting mode[] raises the PHP warning "Array to string conversion" '
+				. '(includes/class-outbound-utm-settings.php:130). The value saved is still "page" (asserted above).'
+			);
+		}
+
+		$this->assertSame( array(), $errors, 'sanitize() raised PHP errors.' );
 	}
 
 	public function test_utm_fields_are_cleaned() {
@@ -79,7 +98,7 @@ class SettingsSanitizeTest extends Outbound_UTM_TestCase {
 			array(
 				'utm_source'   => '  <b>Partner</b>   Site ',
 				'utm_medium'   => "email\t\nnewsletter",
-				'utm_campaign' => 'spring%20sale 50%off',
+				'utm_campaign' => "<em>Spring</em>\x07  Sale ",
 				'utm_term'     => '<script>alert(1)</script>shoes',
 				'utm_content'  => '{slug}-{term:product_cat}',
 			)
@@ -87,9 +106,18 @@ class SettingsSanitizeTest extends Outbound_UTM_TestCase {
 
 		$this->assertSame( 'Partner Site', $clean['utm_source'], 'Tags stripped, spaces collapsed, trimmed.' );
 		$this->assertSame( 'email newsletter', $clean['utm_medium'], 'Control characters become one space.' );
-		$this->assertSame( 'spring%20sale 50%off', $clean['utm_campaign'], 'Percent signs are legal in a UTM value and are kept.' );
+		$this->assertSame( 'Spring Sale', $clean['utm_campaign'], 'Tags stripped, a control character and the spaces around it become one space, trimmed.' );
 		$this->assertSame( 'shoes', $clean['utm_term'], 'Script elements are removed with their contents.' );
 		$this->assertSame( '{slug}-{term:product_cat}', $clean['utm_content'], 'Placeholders are kept as typed.' );
+	}
+
+	public function test_percent_signs_are_kept_in_every_utm_field() {
+		$typed = 'spring%20sale 50%off';
+		$clean = self::sanitize( array_fill_keys( Outbound_UTM_Settings::fields(), $typed ) );
+
+		foreach ( Outbound_UTM_Settings::fields() as $field ) {
+			$this->assertSame( $typed, $clean[ $field ], "{$field}: percent signs are legal in a UTM value and are kept." );
+		}
 	}
 
 	public function test_utm_fields_reject_bad_input() {

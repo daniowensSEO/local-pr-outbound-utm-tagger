@@ -31,14 +31,25 @@ class PageModeTest extends Outbound_UTM_TestCase {
 		return apply_filters( 'wp_template_enhancement_output_buffer', $html, $html );
 	}
 
+	/**
+	 * On a classic theme (this test site's) core forces page buffering on at priority 0, so
+	 * wp_should_output_buffer_template_for_enhancement() is true whatever the plugin does. Taken
+	 * out, WordPress buffers only when something registered for the buffer, like page mode.
+	 */
+	private function stop_core_forcing_the_buffer() {
+		remove_all_filters( 'wp_should_output_buffer_template_for_enhancement' );
+	}
+
 	public function test_switching_page_mode_on_registers_the_output_buffer_filter() {
+		$this->stop_core_forcing_the_buffer();
 		$this->assertFalse( $this->tagger_filter_priority() );
+		$this->assertFalse( wp_should_output_buffer_template_for_enhancement(), 'WordPress would buffer the page before page mode was on.' );
 
 		$this->enable_page_mode();
 
 		$this->assertSame( 10, $this->tagger_filter_priority() );
 		$this->assertFalse( $this->click_hook_priority(), 'Page mode must not load the click script.' );
-		$this->assertTrue( wp_should_output_buffer_template_for_enhancement(), 'WordPress should now buffer the page.' );
+		$this->assertTrue( wp_should_output_buffer_template_for_enhancement(), 'Page mode is on, but WordPress would not buffer the page.' );
 	}
 
 	public function test_tags_external_links_and_leaves_everything_else_alone() {
@@ -144,7 +155,40 @@ class PageModeTest extends Outbound_UTM_TestCase {
 		$this->assertSame( "https://third.com/3?{$q}", $hrefs['three'], 'A link with no text leaves utm_content off.' );
 	}
 
+	public function test_a_link_whose_own_query_comes_out_empty_is_left_alone() {
+		// Only utm_content is set, and it is {link_text}, so a link with no text has nothing to add.
+		$this->enable_page_mode(
+			array(
+				'utm_source'   => '',
+				'utm_medium'   => '',
+				'utm_campaign' => '',
+				'utm_term'     => '',
+				'utm_content'  => '{link_text}',
+			)
+		);
+
+		$out = $this->filter(
+			self::document(
+				'<a id="text" href="https://partner.com/1">Visit Partner</a>
+				<a id="image-only" href="https://third.com/3"><img src="x.png" alt=""></a>
+				<a id="image-only-query" href="https://third.com/4?a=1"><img src="y.png" alt=""></a>'
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'text'             => 'https://partner.com/1?utm_content=visit-partner',
+				'image-only'       => 'https://third.com/3',
+				'image-only-query' => 'https://third.com/4?a=1',
+			),
+			self::hrefs( $out ),
+			'A link with nothing to add must not get a bare "?" or "&".'
+		);
+	}
+
 	public function test_the_real_template_output_buffer_tags_the_page() {
+		// Without core's classic-theme default, the buffer only starts because page mode asked for it.
+		$this->stop_core_forcing_the_buffer();
 		$this->enable_page_mode();
 		$html = self::document( '<a id="external" href="https://partner.com/page">Partner</a><a id="internal" href="/about/">About</a>' );
 
@@ -156,6 +200,7 @@ class PageModeTest extends Outbound_UTM_TestCase {
 		ob_end_flush();
 		$out = ob_get_clean();
 
+		// A precondition; the href assertions below are what show the page was tagged.
 		$this->assertTrue( $started, 'WordPress did not start the template enhancement output buffer.' );
 		$hrefs = self::hrefs( $out );
 		$this->assertSame( 'https://partner.com/page?' . $this->query(), $hrefs['external'] );
@@ -176,20 +221,24 @@ class PageModeTest extends Outbound_UTM_TestCase {
 	}
 
 	public function test_anchors_inside_svg_are_left_alone() {
-		$this->markTestSkipped(
-			'Bug found by this test (left unfixed while 0.2.2 is in WordPress.org review): filter_html() means to skip '
-			. 'anchors inside SVG/MathML via $processor->get_namespace(), but WP_HTML_Tag_Processor never changes namespace '
-			. 'by itself (only WP_HTML_Processor does), so it is always "html" and SVG links get tagged. Click mode\'s '
-			. 'closest("a[href]") matches SVG anchors too, so both modes tag them today.'
-		);
-
 		// filter_html() says: "Anchors inside an SVG or MathML drawing are not page links, so they are left alone."
 		$this->enable_page_mode();
 
-		$out = $this->filter(
+		$out  = $this->filter(
 			self::document( '<svg viewBox="0 0 10 10"><a id="svg-link" href="https://partner.com/svg"><text>x</text></a></svg>' )
 		);
+		$href = self::hrefs( $out )['svg-link'];
 
-		$this->assertSame( 'https://partner.com/svg', self::hrefs( $out )['svg-link'] );
+		// Skipped only while the plugin still gives the known wrong answer; once fixed, this runs for real.
+		if ( 'https://partner.com/svg?' . $this->query() === $href ) {
+			$this->markTestSkipped(
+				'Bug found by this test (left unfixed while 0.2.2 is in WordPress.org review): filter_html() means to skip '
+				. 'anchors inside SVG/MathML via $processor->get_namespace(), but WP_HTML_Tag_Processor never changes namespace '
+				. 'by itself (only WP_HTML_Processor does), so it is always "html" and SVG links get tagged. Click mode\'s '
+				. 'closest("a[href]") matches SVG anchors too, so both modes tag them today.'
+			);
+		}
+
+		$this->assertSame( 'https://partner.com/svg', $href );
 	}
 }

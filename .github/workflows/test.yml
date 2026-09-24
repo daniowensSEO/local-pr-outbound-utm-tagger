@@ -84,15 +84,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # max_skipped: the most skipped tests a leg may report. Three are plugin bugs left for 0.2.3,
+        # each skipped only while it still gives its known wrong answer. The rest are uninstall tests
+        # for the other kind of install: 2 multisite-only tests on a single site, 1 single-site-only
+        # test on multisite. Lower these as the bugs are fixed.
         include:
           # 6.9 is the plugin's "Requires at least" (and the core filter page mode needs); 8.0 is "Requires PHP".
-          - { php: '8.0', wp: '6.9', multisite: '0' }
-          - { php: '8.3', wp: 'latest', multisite: '0' }
-          - { php: '8.4', wp: 'latest', multisite: '0' }
-          - { php: '8.4', wp: 'latest', multisite: '1' }
+          - { php: '8.0', wp: '6.9', multisite: '0', max_skipped: 5 }
+          - { php: '8.3', wp: 'latest', multisite: '0', max_skipped: 5 }
+          - { php: '8.4', wp: 'latest', multisite: '0', max_skipped: 5 }
+          - { php: '8.4', wp: 'latest', multisite: '1', max_skipped: 4 }
+          # The newest PHP, as in the parity job.
+          - { php: '8.5', wp: 'latest', multisite: '0', max_skipped: 5 }
     services:
       mysql:
-        image: mysql:8.0
+        # MySQL 8.4 LTS (8.0's support ended in April 2026), pinned by digest like the actions above.
+        # The digest is mysql:8.4's multi-arch index (8.4.11). Dependabot does not update it; refresh by hand.
+        image: mysql:8.4@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -135,8 +143,25 @@ jobs:
             echo "::error::Asked for WordPress $REQUESTED but installed $installed"
             exit 1
           fi
+          # tests/bootstrap.php stops the run if WordPress boots as the other kind of install; this
+          # catches a matrix entry whose multisite value is missing or misspelled.
+          if [ "$WP_MULTISITE" != "0" ] && [ "$WP_MULTISITE" != "1" ]; then
+            echo "::error::WP_MULTISITE must be 0 or 1, got '$WP_MULTISITE'"
+            exit 1
+          fi
       - name: Run PHPUnit
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit --log-junit "$RUNNER_TEMP/phpunit-junit.xml"
+      - name: No more skipped tests than expected
+        env:
+          MAX_SKIPPED: ${{ matrix.max_skipped }}
+        run: |
+          # shellcheck disable=SC2016 # The PHP code is single-quoted on purpose.
+          skipped=$(php -r '$xml = simplexml_load_file($argv[1]); if (!$xml) { exit(1); } echo count($xml->xpath("//testcase[skipped]"));' "$RUNNER_TEMP/phpunit-junit.xml")
+          echo "Skipped tests: $skipped (at most $MAX_SKIPPED expected on this leg)"
+          if [ -z "$MAX_SKIPPED" ] || [ "$skipped" -gt "$MAX_SKIPPED" ]; then
+            echo "::error::$skipped tests were skipped; this leg allows at most ${MAX_SKIPPED:-?}. See the skip reasons in the Run PHPUnit step."
+            exit 1
+          fi
 
   parity-js:
     name: HTML/JS parity (Node ${{ matrix.node }})

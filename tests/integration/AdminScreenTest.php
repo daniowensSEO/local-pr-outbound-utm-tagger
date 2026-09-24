@@ -12,6 +12,9 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 	/** @var array|null */
 	private $saved_admin_page_hooks;
 
+	/** @var string|null */
+	private $saved_request_uri;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -19,8 +22,10 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
 
 		$this->saved_admin_page_hooks = isset( $GLOBALS['admin_page_hooks'] ) ? $GLOBALS['admin_page_hooks'] : null;
+		$this->saved_request_uri      = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : null;
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 	}
@@ -28,7 +33,195 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 	public function tear_down() {
 		$GLOBALS['admin_page_hooks'] = $this->saved_admin_page_hooks;
 		unset( $_GET['page'], $_GET['settings-updated'] );
+		if ( null === $this->saved_request_uri ) {
+			unset( $_SERVER['REQUEST_URI'] );
+		} else {
+			$_SERVER['REQUEST_URI'] = $this->saved_request_uri;
+		}
+		unregister_setting( Outbound_UTM_Settings::GROUP, Outbound_UTM_Settings::OPTION );
 		parent::tear_down();
+	}
+
+	/** The settings screen as an administrator sees it. */
+	private function render_settings_screen() {
+		$_SERVER['REQUEST_URI'] = '/wp-admin/options-general.php?page=outbound-utm-tagger';
+		return get_echo( array( 'Outbound_UTM_Settings', 'render' ) );
+	}
+
+	/**
+	 * Every form control on the page, in order.
+	 *
+	 * @param string $html Markup.
+	 * @return array<int, array{name: string|null, type: string, value: string|null, checked: bool}>
+	 */
+	private static function form_controls( $html ) {
+		$controls  = array();
+		$processor = new WP_HTML_Tag_Processor( $html );
+		while ( $processor->next_tag() ) {
+			$tag = $processor->get_tag();
+			if ( 'INPUT' !== $tag && 'TEXTAREA' !== $tag && 'SELECT' !== $tag && 'BUTTON' !== $tag ) {
+				continue;
+			}
+			$name       = $processor->get_attribute( 'name' );
+			$value      = 'TEXTAREA' === $tag ? $processor->get_modifiable_text() : $processor->get_attribute( 'value' );
+			$controls[] = array(
+				'name'    => is_string( $name ) ? $name : null,
+				'type'    => 'INPUT' === $tag ? strtolower( (string) $processor->get_attribute( 'type' ) ) : strtolower( $tag ),
+				'value'   => is_string( $value ) ? $value : null,
+				'checked' => null !== $processor->get_attribute( 'checked' ),
+			);
+		}
+		return $controls;
+	}
+
+	/**
+	 * What a browser posts for this form, parsed the way PHP builds $_POST.
+	 *
+	 * @param array $controls From form_controls().
+	 * @param array $changes  What the admin changes before saving: field key => text typed,
+	 *                        true/false to tick or untick a checkbox, or the radio value picked.
+	 * @return array
+	 */
+	private static function submit( array $controls, array $changes = array() ) {
+		$pairs = array();
+		foreach ( $controls as $control ) {
+			if ( null === $control['name'] || 'submit' === $control['type'] ) {
+				continue;
+			}
+			$key   = preg_match( '/^' . preg_quote( Outbound_UTM_Settings::OPTION, '/' ) . '\[([a-z_]+)\]$/', $control['name'], $match ) ? $match[1] : null;
+			$value = (string) $control['value'];
+			$on    = $control['checked'];
+			if ( null !== $key && array_key_exists( $key, $changes ) ) {
+				if ( 'checkbox' === $control['type'] ) {
+					$on = (bool) $changes[ $key ];
+				} elseif ( 'radio' === $control['type'] ) {
+					$on = ( $changes[ $key ] === $value );
+				} else {
+					$value = (string) $changes[ $key ];
+				}
+			}
+			if ( ( 'checkbox' === $control['type'] || 'radio' === $control['type'] ) && ! $on ) {
+				continue;
+			}
+			$pairs[] = rawurlencode( $control['name'] ) . '=' . rawurlencode( $value );
+		}
+
+		parse_str( implode( '&', $pairs ), $post );
+		return $post;
+	}
+
+	public function test_settings_form_sends_exactly_the_fields_sanitize_reads() {
+		$controls = self::form_controls( $this->render_settings_screen() );
+
+		$prefix = Outbound_UTM_Settings::OPTION . '[';
+		$fields = array();
+		foreach ( $controls as $control ) {
+			if ( null !== $control['name'] && 0 === strpos( $control['name'], $prefix ) ) {
+				$fields[] = array( $control['name'], $control['type'], 'text' === $control['type'] || 'textarea' === $control['type'] ? null : $control['value'] );
+			}
+		}
+
+		$o = Outbound_UTM_Settings::OPTION;
+		$this->assertSame(
+			array(
+				array( "{$o}[enabled]", 'checkbox', '1' ),
+				array( "{$o}[mode]", 'radio', 'page' ),
+				array( "{$o}[mode]", 'radio', 'click' ),
+				array( "{$o}[utm_source]", 'text', null ),
+				array( "{$o}[utm_medium]", 'text', null ),
+				array( "{$o}[utm_campaign]", 'text', null ),
+				array( "{$o}[utm_term]", 'text', null ),
+				array( "{$o}[utm_content]", 'text', null ),
+				array( "{$o}[tidy]", 'checkbox', '1' ),
+				array( "{$o}[skip]", 'textarea', null ),
+			),
+			$fields
+		);
+
+		// The keys the form sends are exactly the keys sanitize() reads (every key it returns is read from its own input key).
+		$sent = array();
+		foreach ( $fields as $field ) {
+			$sent[] = substr( $field[0], strlen( $prefix ), -1 );
+		}
+		$this->assertEqualsCanonicalizing( array_keys( Outbound_UTM_Settings::sanitize( array() ) ), array_values( array_unique( $sent ) ) );
+
+		// options.php saves only the options allowed for the posted option_page, after checking its nonce.
+		$post = self::submit( $controls );
+		$this->assertSame( Outbound_UTM_Settings::GROUP, $post['option_page'] );
+		$this->assertSame( 'update', $post['action'] );
+		$this->assertSame( 1, wp_verify_nonce( $post['_wpnonce'], $post['option_page'] . '-options' ) );
+
+		Outbound_UTM_Settings::register();
+		$allowed = option_update_filter( array() );
+		$this->assertArrayHasKey( $post['option_page'], $allowed );
+		$this->assertContains( Outbound_UTM_Settings::OPTION, $allowed[ $post['option_page'] ] );
+
+		// Besides the settings, the form posts only options.php's own fields.
+		$other = array_diff( array_keys( $post ), array( Outbound_UTM_Settings::OPTION, 'option_page', 'action', '_wpnonce', '_wp_http_referer' ) );
+		$this->assertSame( array(), array_values( $other ) );
+	}
+
+	public function test_saving_the_form_unchanged_keeps_every_setting() {
+		$saved = $this->save_settings(
+			array(
+				'enabled'      => 1,
+				'mode'         => 'click',
+				'tidy'         => 0,
+				'utm_source'   => 'Source "Q3" & Co',
+				'utm_medium'   => 'medium-2',
+				'utm_campaign' => 'Spring%20Sale',
+				'utm_term'     => 'term-4',
+				'utm_content'  => '{slug}-{link_text}',
+				'skip'         => array( 'partner.com', 'xn--mnchen-3ya.de' ),
+			)
+		);
+
+		$post = self::submit( self::form_controls( $this->render_settings_screen() ) );
+
+		$this->assertSame( $saved, Outbound_UTM_Settings::sanitize( $post[ Outbound_UTM_Settings::OPTION ] ) );
+	}
+
+	public function test_what_the_admin_changes_in_the_form_is_what_gets_saved() {
+		// A fresh install: nothing saved, tagging off, page mode, tidy on.
+		$controls = self::form_controls( $this->render_settings_screen() );
+
+		$post = self::submit(
+			$controls,
+			array(
+				'enabled'      => true,
+				'mode'         => 'click',
+				'tidy'         => false,
+				'utm_source'   => 'my-site',
+				'utm_medium'   => 'partner',
+				'utm_campaign' => 'launch',
+				'utm_term'     => '',
+				'utm_content'  => '{post_type}',
+				'skip'         => "www.Partner.com\nMünchen.de",
+			)
+		);
+
+		Outbound_UTM_Settings::register();
+		update_option( Outbound_UTM_Settings::OPTION, $post[ Outbound_UTM_Settings::OPTION ] );
+
+		$this->assertSame(
+			array(
+				'enabled'      => 1,
+				'mode'         => 'click',
+				'tidy'         => 0,
+				'utm_source'   => 'my-site',
+				'utm_medium'   => 'partner',
+				'utm_campaign' => 'launch',
+				'utm_term'     => '',
+				'utm_content'  => '{post_type}',
+				'skip'         => array( 'partner.com', function_exists( 'idn_to_ascii' ) ? 'xn--mnchen-3ya.de' : 'münchen.de' ),
+			),
+			get_option( Outbound_UTM_Settings::OPTION )
+		);
+	}
+
+	public function test_settings_screen_prints_nothing_for_an_editor() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$this->assertSame( '', $this->render_settings_screen() );
 	}
 
 	/**

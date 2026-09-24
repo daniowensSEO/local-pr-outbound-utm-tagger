@@ -41,6 +41,31 @@ tests_add_filter(
 // Installs WordPress into the test database and boots it (single site, or multisite when WP_MULTISITE=1).
 require $outbound_utm_tests_dir . '/includes/bootstrap.php';
 
+// The run must be the kind of install it asked for. The core bootstrap reads WP_MULTISITE (or the
+// WP_TESTS_MULTISITE constant); if that ever stopped taking effect, a "multisite" run would boot a
+// single site, skip its multisite tests and still pass, so it stops here instead.
+$outbound_utm_wants_multisite = ( '1' === getenv( 'WP_MULTISITE' ) ) || ( defined( 'WP_TESTS_MULTISITE' ) && WP_TESTS_MULTISITE );
+if ( is_multisite() !== $outbound_utm_wants_multisite ) {
+	fwrite(
+		STDERR,
+		sprintf(
+			"Asked for %s (WP_MULTISITE=%s) but WordPress booted as %s.\n",
+			$outbound_utm_wants_multisite ? 'multisite' : 'a single site',
+			var_export( getenv( 'WP_MULTISITE' ), true ),
+			is_multisite() ? 'multisite' : 'a single site'
+		)
+	);
+	exit( 1 );
+}
+
+// What the plugin's option held once WordPress had booted with the plugin active, before any
+// test's set_up() deleted it. ActivationTest checks that booting the plugin saved nothing.
+$GLOBALS['outbound_utm_option_at_boot'] = get_option( 'outbound_utm_settings' );
+
+// Tests that run in a separate PHP process (@runInSeparateProcess) load this bootstrap again.
+// They reuse the database installed above instead of dropping and reinstalling it mid-run.
+putenv( 'WP_TESTS_SKIP_INSTALL=1' );
+
 require_once __DIR__ . '/includes/class-outbound-utm-testcase.php';
 
 printf(

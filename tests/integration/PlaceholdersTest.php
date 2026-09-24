@@ -240,12 +240,18 @@ class PlaceholdersTest extends Outbound_UTM_TestCase {
 	}
 
 	public function test_path_decodes_a_percent_encoded_address() {
-		$this->markTestSkipped(
-			'Known bug, fix planned for 0.2.3: Outbound_UTM_Context::path() runs sanitize_text_field() on REQUEST_URI, '
-			. 'which strips %XX octets, so {path} for /caf%C3%A9/ is "/caf" instead of "/café".'
-		);
-
 		$this->visit( home_url( '/caf%C3%A9/' ) );
-		$this->assert_resolves( array( '{path}' => '/café' ) );
+		$path = Outbound_UTM_Context::apply( '{path}' );
+
+		// Skipped only while the plugin still gives the known wrong answer. Once the 0.2.3 fix
+		// is merged this runs for real, and any other wrong value fails.
+		if ( '/caf' === $path ) {
+			$this->markTestSkipped(
+				'Known bug, fix planned for 0.2.3: Outbound_UTM_Context::path() runs sanitize_text_field() on REQUEST_URI, '
+				. 'which strips %XX octets, so {path} for /caf%C3%A9/ is "/caf" instead of "/café".'
+			);
+		}
+
+		$this->assertSame( '/café', $path );
 	}
 }
