@@ -30,11 +30,12 @@ class ClickModeTest extends Outbound_UTM_TestCase {
 
 	/** The inline config, decoded. */
 	private function config() {
+		// WordPress 6.9+ appends a "//# sourceURL=..." line to inline script data, so match the config line itself.
 		$inline = wp_scripts()->get_inline_script_data( Outbound_UTM_Click::HANDLE, 'before' );
 		$this->assertStringStartsWith( self::PREFIX, $inline );
-		$this->assertStringEndsWith( ';', $inline );
+		$this->assertSame( 1, preg_match( '/^' . preg_quote( self::PREFIX, '/' ) . '(.*);$/m', $inline, $match ), "Unexpected inline script: {$inline}" );
 
-		$config = json_decode( substr( $inline, strlen( self::PREFIX ), -1 ), true );
+		$config = json_decode( $match[1], true );
 		$this->assertIsArray( $config, 'The inline config is not valid JSON.' );
 		return $config;
 	}
