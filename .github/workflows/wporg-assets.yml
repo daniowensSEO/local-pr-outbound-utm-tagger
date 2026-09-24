@@ -1,9 +1,10 @@
 name: Update WordPress.org readme and art
 
 # Pushes readme.txt and the .wordpress-org/ art to WordPress.org WITHOUT a new release, e.g. a
-# "Tested up to" bump. Manual only, from main, and it COMMITS FOR REAL (the 10up action has no
-# dry run), so it asks for the slug to be typed as confirmation. The action itself refuses if any
-# shipped code on main differs from the released trunk: code changes need a real release.
+# "Tested up to" bump. Manual only, from main. It COMMITS FOR REAL (the 10up action has no dry run),
+# so it asks for the slug to be typed as confirmation, and the full Test workflow must pass on the
+# exact commit first. The action itself refuses if any shipped file other than readme.txt differs
+# from the released trunk: code changes need a real release.
 
 on:
   workflow_dispatch:
@@ -16,17 +17,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: wporg-svn
-  cancel-in-progress: false
-
 jobs:
-  assets:
-    name: WordPress.org readme + assets
+  guard:
+    name: Confirmed, and running from main
     runs-on: ubuntu-24.04
     steps:
-      - name: Confirmed, and running from main
-        env:
+      - env:
           CONFIRM: ${{ inputs.confirm }}
         run: |
           if [ "$CONFIRM" != "outbound-utm-tagger" ]; then
@@ -38,7 +34,26 @@ jobs:
             exit 1
           fi
 
+  test:
+    name: Quality gates
+    needs: guard
+    uses: ./.github/workflows/test.yml
+    with:
+      ref: ${{ github.sha }}
+
+  assets:
+    name: WordPress.org readme + assets
+    needs: [guard, test]
+    runs-on: ubuntu-24.04
+    # Same queue as real releases; queue: max keeps every waiting run instead of cancelling it.
+    concurrency:
+      group: wporg-svn
+      cancel-in-progress: false
+      queue: max
+    steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
 
       - name: Update readme + assets (10up)
         uses: 10up/action-wordpress-plugin-asset-update@2480306f6f693672726d08b5917ea114cb2825f7 # 2.2.0
