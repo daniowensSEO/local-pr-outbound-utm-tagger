@@ -119,3 +119,8 @@ jobs:
           build-dir: ./build/outbound-utm-tagger
           slug: outbound-utm-tagger
           wp-version: ${{ matrix.wp }}
+      # The action passes on warnings; WP.org review doesn't. Make green mean zero findings.
+      - name: Require zero Plugin Check findings
+        run: |
+          cat "$RUNNER_TEMP/plugin-check-results.txt"
+          grep -qx 'Success: Checks complete. No errors found.' "$RUNNER_TEMP/plugin-check-results.txt"
