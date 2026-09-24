@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+	Integration tests against a real WordPress install (see bin/install-wp-tests.sh).
+	Run with: vendor/bin/phpunit   (WP_MULTISITE=1 runs the same suite as a multisite network)
+-->
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	cacheResult="false"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	convertDeprecationsToExceptions="true"
+	failOnRisky="true"
+	failOnWarning="true"
+	verbose="true"
+	>
+	<testsuites>
+		<testsuite name="integration">
+			<directory suffix="Test.php">./tests/integration</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>
