@@ -1,0 +1,39 @@
+# Secret-scan rules for this workspace: gitleaks' default rules plus the credential formats this
+# project actually handles that the defaults miss (measured 2026-09-23: WordPress application
+# passwords and HTTP Basic auth headers passed the default rules). The plugin repo carries an
+# identical copy for its CI job; scripts/hooks/install.sh warns if the two drift apart.
+
+title = "wordpress workspace"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "wordpress-application-password"
+description = "WordPress application password (24 characters, usually six groups of four) next to a password/secret/token key"
+regex = '''(?i)(?:pass(?:word)?|pwd|secret|token)[a-z0-9_ -]{0,24}["']?\s*[:=]\s*["']?([a-z0-9]{4}(?: ?[a-z0-9]{4}){5})(?:[^a-z0-9]|$)'''
+secretGroup = 1
+entropy = 3.0
+keywords = ["pass", "pwd", "secret", "token"]
+
+# Prose like "password: this will make sure your site" is six four-letter words. Real application
+# passwords are random mixed-case letters and digits; all-lowercase-letters happens ~1 in 10^9.
+[[rules.allowlists]]
+regexTarget = "secret"
+regexes = ['''^[a-z ]+$''']
+
+[[rules]]
+id = "http-basic-auth-header"
+description = "HTTP Basic Authorization header (username:password in base64, e.g. a WordPress REST/MCP connection)"
+regex = '''(?i)authorization["']?\s*[:=]\s*["']?basic\s+([a-z0-9+/]{16,}={0,2})'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["basic"]
+
+[[rules]]
+id = "url-embedded-credentials"
+description = "Password embedded in a URL (https://user:password@host)"
+regex = '''[a-z][a-z0-9+.-]*://[^:/\s"'@]+:([^@/\s"']{8,})@[a-z0-9.-]+'''
+secretGroup = 1
+entropy = 3.0
+keywords = ["://"]
