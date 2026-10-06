@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Outbound UTM Tagger
+ * Plugin Name:       Local PR Outbound UTM Tagger
  * Description:       Adds UTM parameters to links that point to other websites.
  * Version:           0.2.2
  * Requires at least: 6.9
@@ -9,7 +9,7 @@
  * Author URI:        https://localpr.com/tools/
  * License:           GPLv2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       outbound-utm-tagger
+ * Text Domain:       local-pr-outbound-utm-tagger
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -63,6 +63,6 @@ function outbound_utm_version_notice() {
 		return;
 	}
 	echo '<div class="notice notice-warning"><p>';
-	esc_html_e( 'Outbound UTM Tagger needs WordPress 6.9 or newer. Nothing is being tagged until this site is updated.', 'outbound-utm-tagger' );
+	esc_html_e( 'Outbound UTM Tagger needs WordPress 6.9 or newer. Nothing is being tagged until this site is updated.', 'local-pr-outbound-utm-tagger' );
 	echo '</p></div>';
 }

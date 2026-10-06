@@ -44,7 +44,7 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 
 	/** The settings screen as an administrator sees it. */
 	private function render_settings_screen() {
-		$_SERVER['REQUEST_URI'] = '/wp-admin/options-general.php?page=outbound-utm-tagger';
+		$_SERVER['REQUEST_URI'] = '/wp-admin/options-general.php?page=local-pr-outbound-utm-tagger';
 		return get_echo( array( 'Outbound_UTM_Settings', 'render' ) );
 	}
 
@@ -254,9 +254,9 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 
 	public function test_styles_enqueue_only_on_the_settings_screen() {
 		$hook = $this->add_settings_page();
-		$this->assertSame( 'settings_page_outbound-utm-tagger', $hook );
+		$this->assertSame( 'settings_page_local-pr-outbound-utm-tagger', $hook );
 
-		$others = array( 'index.php', 'options-general.php', 'plugins.php', 'post.php', 'settings_page_another-plugin', 'toplevel_page_outbound-utm-tagger', '' );
+		$others = array( 'index.php', 'options-general.php', 'plugins.php', 'post.php', 'settings_page_another-plugin', 'toplevel_page_local-pr-outbound-utm-tagger', '' );
 		foreach ( $others as $other ) {
 			Outbound_UTM_Settings::enqueue_styles( $other );
 			$this->assertFalse( wp_style_is( self::STYLE, 'enqueued' ), "The stylesheet loaded on '{$other}'." );
@@ -273,9 +273,9 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 	public function test_styles_follow_the_real_hook_suffix_on_a_translated_admin() {
 		// On a German admin the Settings menu is "Einstellungen", so the hook suffix changes with it.
 		$hook = $this->add_settings_page( 'einstellungen' );
-		$this->assertSame( 'einstellungen_page_outbound-utm-tagger', $hook );
+		$this->assertSame( 'einstellungen_page_local-pr-outbound-utm-tagger', $hook );
 
-		Outbound_UTM_Settings::enqueue_styles( 'settings_page_outbound-utm-tagger' );
+		Outbound_UTM_Settings::enqueue_styles( 'settings_page_local-pr-outbound-utm-tagger' );
 		$this->assertFalse( wp_style_is( self::STYLE, 'enqueued' ) );
 
 		Outbound_UTM_Settings::enqueue_styles( $hook );
@@ -304,7 +304,7 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 		$this->assertSame( '', $this->add_settings_page(), 'Editors must not get the settings page.' );
 
 		// With no page, the empty hook suffix must not match anything, including ''.
-		foreach ( array( '', 'settings_page_outbound-utm-tagger', 'index.php' ) as $hook ) {
+		foreach ( array( '', 'settings_page_local-pr-outbound-utm-tagger', 'index.php' ) as $hook ) {
 			Outbound_UTM_Settings::enqueue_styles( $hook );
 			$this->assertFalse( wp_style_is( self::STYLE, 'enqueued' ), "The stylesheet loaded on '{$hook}'." );
 		}
@@ -314,11 +314,11 @@ class AdminScreenTest extends Outbound_UTM_TestCase {
 		$links = Outbound_UTM_Settings::action_links( array( 'deactivate' => '<a href="#">Deactivate</a>' ) );
 
 		$this->assertCount( 2, $links );
-		$this->assertStringContainsString( 'options-general.php?page=outbound-utm-tagger', reset( $links ) );
+		$this->assertStringContainsString( 'options-general.php?page=local-pr-outbound-utm-tagger', reset( $links ) );
 	}
 
 	public function test_cache_notice_shows_only_after_saving_this_screen() {
-		$_GET['page'] = 'outbound-utm-tagger';
+		$_GET['page'] = 'local-pr-outbound-utm-tagger';
 		$this->assertSame( '', get_echo( array( 'Outbound_UTM_Settings', 'cache_notice' ) ), 'No notice before a save.' );
 
 		$_GET['settings-updated'] = 'true';

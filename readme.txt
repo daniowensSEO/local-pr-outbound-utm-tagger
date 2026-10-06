@@ -1,5 +1,5 @@
-=== Outbound UTM Tagger ===
-Contributors: dannanelli
+=== Local PR Outbound UTM Tagger ===
+Contributors: daniowens
 Tags: utm, analytics, outbound links, campaign tracking, referral
 Requires at least: 6.9
 Tested up to: 7.1
