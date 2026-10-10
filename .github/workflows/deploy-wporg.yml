@@ -69,7 +69,7 @@ jobs:
             [ "$highest" = "$VERSION" ] || fail "$VERSION is not the highest release tag ($highest)"
           fi
 
-          base="https://plugins.svn.wordpress.org/outbound-utm-tagger"
+          base="https://plugins.svn.wordpress.org/local-pr-outbound-utm-tagger"
           listing=$(curl -fsS --max-time 30 --retry 3 "$base/tags/") \
             || fail "Can't read $base/tags/ (plugin not approved yet, or WordPress.org is down)"
           published=$(printf '%s' "$listing" | grep -oE 'href="[0-9]+\.[0-9]+\.[0-9]+/"' | sed 's/^href="//; s#/"$##')
@@ -87,7 +87,7 @@ jobs:
         with:
           dry-run: ${{ github.event_name != 'push' }}
         env:
-          SLUG: outbound-utm-tagger
+          SLUG: local-pr-outbound-utm-tagger
           VERSION: ${{ steps.guard.outputs.version }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}

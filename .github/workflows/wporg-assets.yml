@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type outbound-utm-tagger to confirm a real commit to WordPress.org'
+        description: 'Type local-pr-outbound-utm-tagger to confirm a real commit to WordPress.org'
         type: string
         required: true
 
@@ -25,7 +25,7 @@ jobs:
       - env:
           CONFIRM: ${{ inputs.confirm }}
         run: |
-          if [ "$CONFIRM" != "outbound-utm-tagger" ]; then
+          if [ "$CONFIRM" != "local-pr-outbound-utm-tagger" ]; then
             echo "::error::Confirmation did not match the slug; nothing was sent."
             exit 1
           fi
@@ -58,6 +58,6 @@ jobs:
       - name: Update readme + assets (10up)
         uses: 10up/action-wordpress-plugin-asset-update@2480306f6f693672726d08b5917ea114cb2825f7 # 2.2.0
         env:
-          SLUG: outbound-utm-tagger
+          SLUG: local-pr-outbound-utm-tagger
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}

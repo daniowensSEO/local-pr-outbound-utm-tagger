@@ -219,14 +219,14 @@ jobs:
           ref: ${{ inputs.ref }}
       - name: Build a clean distributable copy (same .distignore filter as the WP.org deploy)
         run: |
-          mkdir -p build/outbound-utm-tagger
-          rsync -rc --exclude-from=.distignore ./ build/outbound-utm-tagger/
-          find build/outbound-utm-tagger -type f | sort
+          mkdir -p build/local-pr-outbound-utm-tagger
+          rsync -rc --exclude-from=.distignore ./ build/local-pr-outbound-utm-tagger/
+          find build/local-pr-outbound-utm-tagger -type f | sort
       - name: Run Plugin Check
         uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
-          build-dir: ./build/outbound-utm-tagger
-          slug: outbound-utm-tagger
+          build-dir: ./build/local-pr-outbound-utm-tagger
+          slug: local-pr-outbound-utm-tagger
           wp-version: ${{ matrix.wp }}
       # The action passes on warnings; WP.org review doesn't. Make green mean zero findings.
       - name: Require zero Plugin Check findings
