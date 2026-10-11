@@ -1,18 +1,21 @@
 name: Plugin monitor
 
-# Every 3 hours: checks WordPress releases against the plugin's "Tested up to", the WordPress.org
-# listing, support forum and reviews, and new GitHub issues and pull requests, and opens an issue
-# assigned to Dani for anything that needs her (GitHub emails her). The logic and its tests are in
-# .github/monitor/. It only reads WordPress.org and only writes issues here: nothing is published.
+# Once a day at 11:07 am Eastern (Dani: not before 11 am ET): checks WordPress releases against the
+# plugin's "Tested up to", the WordPress.org listing, support forum and reviews, and new GitHub issues
+# and pull requests, and opens an issue assigned to Dani for anything that needs her (GitHub emails
+# her). The logic and its tests are in .github/monitor/. It only reads WordPress.org and only writes
+# issues here: nothing is published.
 #
-# A run that hits an error fails; a second failed run in a row opens a "monitor is failing" issue
-# (closed by the next clean run), so a broken monitor doesn't go quiet. Manual runs default to a dry
-# run; "test_alert" opens one test issue to prove the emails arrive, and "test_failure" opens the
-# failing issue at once. Either test makes the run a real one.
+# A run that hits an error fails and opens a "monitor is failing" issue (closed by the next clean
+# run), so a broken monitor doesn't go quiet. Manual runs default to a dry run; "test_alert" opens one
+# test issue to prove the emails arrive, and "test_failure" opens the failing issue. Either test
+# makes the run a real one.
 
 on:
   schedule:
-    - cron: '23 */3 * * *'
+    # A few minutes past the hour: GitHub can delay or drop runs queued at the top of the hour.
+    - cron: '7 11 * * *'
+      timezone: 'America/New_York'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -48,7 +51,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      actions: read # whether the previous run failed
       contents: read
       issues: write
       pull-requests: write

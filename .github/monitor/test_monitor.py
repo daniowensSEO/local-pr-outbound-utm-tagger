@@ -468,33 +468,6 @@ class Health(Base):
         self.assertEqual(len(self.acts('NOTE  [monitor-failing]')), 1)
         self.assertEqual(self.alerts.get('monitor-failing')['state'], 'open')
 
-    def test_one_failed_run_opens_nothing(self):
-        self.patch(failed_before=lambda: False)
-        self.assertFalse(m.report_health(self.alerts, ['forum']))
-        self.assertIsNone(self.alerts.get('monitor-failing'))
-        self.assertTrue(m.report_health(self.alerts, ['test failure'], True))  # the test input forces it
-        self.assertEqual(len(self.acts('OPEN  [monitor-failing]')), 1)
-
-    def test_previous_run_from_the_actions_api(self):
-        runs = {'workflow_runs': [{'id': 7, 'conclusion': None}, {'id': 6, 'conclusion': 'success'}]}
-
-        def fake_gh(method, path, payload=None, ok=None):
-            if path.endswith('/actions/runs/7'):
-                return {'workflow_id': 3}
-            if '/actions/workflows/3/runs?' in path:
-                return runs
-            raise RuntimeError('unexpected ' + path)
-        def down(*args, **kwargs):
-            raise RuntimeError('API down')
-        self.patch(DRY_RUN=False, TOKEN='x', gh=fake_gh)
-        os.environ['GITHUB_RUN_ID'] = '7'
-        self.addCleanup(os.environ.pop, 'GITHUB_RUN_ID', None)
-        self.assertFalse(m.failed_before())
-        runs['workflow_runs'][1]['conclusion'] = 'failure'
-        self.assertTrue(m.failed_before())
-        self.patch(gh=down)
-        self.assertTrue(m.failed_before())  # unknown counts as failed
-
     def test_main_fails_a_dry_run_with_errors(self):
         self.world.pages.pop(FORUM + 'reviews/feed/')
         self.assertEqual(m.main(), 1)
@@ -508,9 +481,9 @@ class Health(Base):
             def __new__(cls):
                 return alerts
         self.patch(DRY_RUN=False, ensure_labels=lambda: None, Alerts=Loaded,
-                   report_health=lambda a, errors, force: True)
+                   report_health=lambda a, errors: True)
         self.assertEqual(m.main(), 0)
-        self.patch(report_health=lambda a, errors, force: False)
+        self.patch(report_health=lambda a, errors: False)
         self.assertEqual(m.main(), 1)
 
 

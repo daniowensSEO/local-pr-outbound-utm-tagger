@@ -17,9 +17,9 @@ needs her. GitHub emails her about each one.
 
 Each alert is one issue labeled `monitor`, found again on later runs by the hidden key in its body, so
 a run never opens a duplicate; small per-alert state (reply counts, the post ids seen) is kept in the
-body too. A check that fails (after retries) fails the run; two failed runs in a row open a "monitor is
-failing" issue, closed by the next clean run, so a broken monitor doesn't go quiet. While that issue is
-open, runs pass, so GitHub's own failure emails don't repeat on top of it.
+body too. A check that fails (after retries) fails the run and opens a "monitor is failing" issue,
+closed by the next clean run, so a broken monitor doesn't go quiet. While that issue is open, runs
+pass, so GitHub's own failure emails don't repeat on top of it.
 
 Forum text is written by anyone, so it is treated as untrusted. Alerts link to posts and never quote
 them (a quote would stay in the issue and its edit history, and be republished if the repository went
@@ -502,8 +502,8 @@ def core_text(ver, tested, stage, behind):
             f'2. Set `Tested up to: {ver}` (just {ver}, never three numbers) in `readme.txt`. With no code '
             f'changes, the *Update WordPress.org readme and art* workflow publishes it without a release; '
             f'with code changes, it goes out with the next release.\n\n'
-            f'This issue closes itself once WordPress.org shows "Tested up to: {ver}" (allow up to 6 hours '
-            f'after the change).')
+            f'This issue closes itself at the first daily check after WordPress.org shows '
+            f'"Tested up to: {ver}".')
 
 
 def check_core(alerts, info):
@@ -826,28 +826,11 @@ def test_failure():
     raise RuntimeError('a deliberate failure, to test the "monitor is failing" alert')
 
 
-def failed_before():
-    """Whether this workflow's previous run failed. When that can't be told, yes, to stay loud."""
-    run = os.environ.get('GITHUB_RUN_ID')
-    if DRY_RUN or not (TOKEN and run):
-        return True
-    try:
-        workflow = gh('GET', f'/repos/{REPO}/actions/runs/{run}')['workflow_id']
-        runs = gh('GET', f'/repos/{REPO}/actions/workflows/{workflow}/runs?status=completed&per_page=5')
-    except Exception as e:
-        log(f'(could not read the previous run: {e})')
-        return True
-    for r in runs.get('workflow_runs') or []:
-        if str(r.get('id')) != run:
-            return r.get('conclusion') in ('failure', 'timed_out', 'startup_failure')
-    return True
-
-
-def report_health(alerts, errors, force=False):
-    """One issue while the monitor keeps failing: opened by the second failed run in a row (a single
-    one is usually a passing outage at WordPress.org) or at once with force, and closed by the next
-    clean run. GitHub's own "run failed" emails depend on the owner's notification settings; this
-    doesn't. Returns True when the failure is on record in that open issue."""
+def report_health(alerts, errors):
+    """One issue while the monitor keeps failing: opened by the first failed run (the monitor runs once
+    a day, and each request is already retried) and closed by the next clean run. GitHub's own "run
+    failed" emails depend on the owner's notification settings; this doesn't. Returns True when the
+    failure is on record in that open issue."""
     key = 'monitor-failing'
     issue = alerts.get(key)
     run = os.environ.get('GITHUB_RUN_ID')
@@ -859,10 +842,7 @@ def report_health(alerts, errors, force=False):
         return False
     if issue is not None and issue['state'] == 'open':
         return True
-    if not force and not failed_before():
-        log('(the first failed run in a row: no issue yet; it opens if the next run fails too)')
-        return False
-    text = (f'These checks failed in {where}, after retries:\n\n' + '\n'.join(f'- {e}' for e in errors) +
+    text =(f'These checks failed in {where}, after retries:\n\n' + '\n'.join(f'- {e}' for e in errors) +
             '\n\nWhile this is open, the monitor may be missing things. Check the run log. '
             'This issue closes itself after the next run without errors.')
     if issue is None:
@@ -892,8 +872,7 @@ def main():
         return 1
     if os.environ.get('TEST_ALERT') == 'true':
         step('test alert', test_alert, alerts)
-    testing_failure = os.environ.get('TEST_FAILURE') == 'true'
-    if testing_failure:
+    if os.environ.get('TEST_FAILURE') == 'true':
         step('test failure', test_failure)
     today = dt.datetime.now(dt.timezone.utc).date()
     info = step('plugin info', plugin_info)
@@ -905,11 +884,11 @@ def main():
     step('GitHub issues', check_github, alerts)
     step('inactivity', check_inactivity, alerts, today)
     step('reminders', check_reminders, alerts, today)
-    on_record = step('health', report_health, alerts, list(errors), testing_failure)
+    on_record = step('health', report_health, alerts, list(errors))
 
     log(f'{alerts.actions} action(s), {len(errors)} error(s){": " + ", ".join(errors) if errors else ""}.')
     # Once the open "monitor is failing" issue records the errors, the run passes, so GitHub's own
-    # failure email doesn't repeat every three hours. Dry runs always show their errors.
+    # failure email doesn't repeat every day. Dry runs always show their errors.
     return 1 if errors and (DRY_RUN or not on_record) else 0
 
 
