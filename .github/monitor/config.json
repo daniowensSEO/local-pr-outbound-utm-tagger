@@ -8,7 +8,7 @@
       "id": "reminder-ship-0.2.3",
       "date": "2026-11-09",
       "title": "Reminder: ship 0.2.3 before WordPress 7.2 comes out (scheduled December 8)",
-      "body": "WordPress 7.2 is scheduled for **December 8, 2026** (release candidate 1 on November 17). Once it ships, sites on 7.2 see the plugin as \"Untested with your version of WordPress\", and Plugin Check fails CI on the old \"Tested up to\".\n\nTo do, with Dani's \"ship it\":\n\n1. Bring `release-0.2.3` up to date with `main` (the `{path}` fix, LICENSE, styles). It still has the old name, slug, text domain and the `dannanelli` Contributor; keep main's `local-pr-outbound-utm-tagger` and `daniowens`. It conflicts in `includes/class-outbound-utm-settings.php`.\n2. From 7.2 RC1, test against it and set \"Tested up to: 7.2\".\n3. CI, the dry run, then tag `0.2.3`.\n\nClose this issue when 0.2.3 is on WordPress.org."
+      "body": "WordPress 7.2 is scheduled for **December 8, 2026** (release candidate 1 on November 17). Once it ships, sites on 7.2 see the plugin as \"Untested with your version of WordPress\", and Plugin Check fails CI on the old \"Tested up to\".\n\n1. Start a release branch from `main` with the 0.2.3 changes (the `{path}` fix and the settings styles).\n2. From 7.2 RC1, test against it and set \"Tested up to: 7.2\".\n3. CI, the dry run, then tag `0.2.3`.\n\nClose this issue when 0.2.3 is on WordPress.org."
     }
   ]
 }

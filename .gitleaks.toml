@@ -1,9 +1,7 @@
-# Secret-scan rules for this workspace: gitleaks' default rules plus the credential formats this
-# project actually handles that the defaults miss (measured 2026-09-23: WordPress application
-# passwords and HTTP Basic auth headers passed the default rules). The plugin repo carries an
-# identical copy for its CI job; scripts/hooks/install.sh warns if the two drift apart.
+# Secret-scan rules: gitleaks' default rules plus credential formats the defaults miss (measured
+# 2026-09-23: WordPress application passwords and HTTP Basic auth headers passed the default rules).
 
-title = "wordpress workspace"
+title = "wordpress-secrets"
 
 [extend]
 useDefault = true
@@ -24,7 +22,7 @@ regexes = ['''^[a-z ]+$''']
 
 [[rules]]
 id = "http-basic-auth-header"
-description = "HTTP Basic Authorization header (username:password in base64, e.g. a WordPress REST/MCP connection)"
+description = "HTTP Basic Authorization header (username:password in base64)"
 regex = '''(?i)authorization["']?\s*[:=]\s*["']?basic\s+([a-z0-9+/]{16,}={0,2})'''
 secretGroup = 1
 entropy = 3.5

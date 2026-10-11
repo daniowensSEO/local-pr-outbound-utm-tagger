@@ -1,10 +1,10 @@
 name: Plugin monitor
 
-# Once a day at 11:07 am Eastern (Dani: not before 11 am ET): checks WordPress releases against the
-# plugin's "Tested up to", the WordPress.org listing, support forum and reviews, and new GitHub issues
-# and pull requests, and opens an issue assigned to Dani for anything that needs her (GitHub emails
-# her). The logic and its tests are in .github/monitor/. It only reads WordPress.org and only writes
-# issues here: nothing is published.
+# Once a day at 11:07 am Eastern: checks WordPress releases against the plugin's "Tested up to",
+# the WordPress.org listing, support forum and reviews, and new GitHub issues and pull requests, and
+# opens an issue assigned to the owner for anything that needs attention (GitHub emails the owner).
+# The logic and its tests are in .github/monitor/. It only reads WordPress.org and only writes issues
+# here: nothing is published.
 #
 # A run that hits an error fails and opens a "monitor is failing" issue (closed by the next clean
 # run), so a broken monitor doesn't go quiet. Manual runs default to a dry run; "test_alert" opens one
@@ -23,7 +23,7 @@ on:
         type: boolean
         default: true
       test_alert:
-        description: 'Also open one test issue (proves the alert email reaches Dani)'
+        description: 'Also open one test issue (proves the alert email arrives)'
         type: boolean
         default: false
       test_failure:

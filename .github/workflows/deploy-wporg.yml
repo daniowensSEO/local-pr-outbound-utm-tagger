@@ -1,8 +1,7 @@
 name: Deploy to WordPress.org
 
 # Tag push (bare x.y.z, e.g. 0.2.3) = a REAL release to the WordPress.org plugin directory:
-# SVN trunk + tags/<version>, plus assets/ from .wordpress-org/. Tags are pushed only with Dani's
-# explicit OK.
+# SVN trunk + tags/<version>, plus assets/ from .wordpress-org/. Only the maintainer pushes tags.
 # Manual run (Actions > Run workflow, "Use workflow from" = main) = ALWAYS a dry run. It rehearses
 # releasing main's current header Version, which must not be published yet.
 #
