@@ -32,6 +32,8 @@ jobs:
     name: WordPress.org SVN (${{ github.event_name == 'push' && 'release' || 'dry run' }})
     needs: test
     runs-on: ubuntu-24.04
+    # The SVN credentials are secrets of the wporg environment, which only main and x.y.z tags can use.
+    environment: wporg
     # Real releases (and wporg-assets.yml) take turns in one queue. queue: max keeps every waiting
     # run instead of letting a newer one cancel it. Dry runs never enter that queue.
     concurrency:
@@ -41,6 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           ref: ${{ github.sha }}
           fetch-depth: 0
 

@@ -45,6 +45,8 @@ jobs:
     name: WordPress.org readme + assets
     needs: [guard, test]
     runs-on: ubuntu-24.04
+    # The SVN credentials are secrets of the wporg environment, which only main and x.y.z tags can use.
+    environment: wporg
     # Same queue as real releases; queue: max keeps every waiting run instead of cancelling it.
     concurrency:
       group: wporg-svn
@@ -53,6 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           ref: ${{ github.sha }}
 
       - name: Update readme + assets (10up)
