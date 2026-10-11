@@ -1,0 +1,84 @@
+name: Plugin monitor
+
+# Every 3 hours: checks WordPress releases against the plugin's "Tested up to", the WordPress.org
+# listing, support forum and reviews, and new GitHub issues and pull requests, and opens an issue
+# assigned to Dani for anything that needs her (GitHub emails her). The logic and its tests are in
+# .github/monitor/. It only reads WordPress.org and only writes issues here: nothing is published.
+#
+# A run that hits an error fails; a second failed run in a row opens a "monitor is failing" issue
+# (closed by the next clean run), so a broken monitor doesn't go quiet. Manual runs default to a dry
+# run; "test_alert" opens one test issue to prove the emails arrive, and "test_failure" opens the
+# failing issue at once. Either test makes the run a real one.
+
+on:
+  schedule:
+    - cron: '23 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: report what would happen, change nothing'
+        type: boolean
+        default: true
+      test_alert:
+        description: 'Also open one test issue (proves the alert email reaches Dani)'
+        type: boolean
+        default: false
+      test_failure:
+        description: 'Also fail on purpose (proves the "monitor is failing" issue and its email)'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - '.github/monitor/**'
+      - '.github/workflows/monitor.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Check and alert
+    # Never in a fork: it would watch this plugin and open issues there.
+    if: github.repository == 'daniowensSEO/outbound-utm-tagger'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read # whether the previous run failed
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/monitor
+
+      # Every change to the monitor runs the tests (the push trigger); scheduled runs skip them, so they
+      # always reach the check and its "monitor is failing" issue.
+      - name: Unit tests
+        if: github.event_name != 'schedule'
+        run: python3 -I .github/monitor/test_monitor.py
+
+      - name: Check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # A push only proves the code against the real feeds. Manual runs follow the inputs; a test
+          # input makes the run real, since a dry run would prove nothing.
+          MONITOR_DRY_RUN: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run && !inputs.test_alert && !inputs.test_failure)) && '1' || '0' }}
+          TEST_ALERT: ${{ github.event_name == 'workflow_dispatch' && inputs.test_alert && 'true' || 'false' }}
+          TEST_FAILURE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_failure && 'true' || 'false' }}
+        run: |
+          set -o pipefail
+          python3 -I .github/monitor/monitor.py | tee "$RUNNER_TEMP/monitor.log"
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/monitor.log" ]; then
+            { echo '~~~~text'; cat "$RUNNER_TEMP/monitor.log"; echo '~~~~'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
