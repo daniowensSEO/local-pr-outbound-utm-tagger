@@ -61,12 +61,12 @@ INFO_URL = ('https://api.wordpress.org/plugins/info/1.2/?action=plugin_informati
 VERSION_CHECK = 'https://api.wordpress.org/core/version-check/1.7/'
 RELEASE_NEWS = 'https://wordpress.org/news/category/releases/feed/'
 
-REPO = os.environ.get('GITHUB_REPOSITORY', 'daniowensSEO/outbound-utm-tagger')
+REPO = os.environ.get('GITHUB_REPOSITORY', 'daniowensSEO/local-pr-outbound-utm-tagger')
 TOKEN = os.environ.get('GITHUB_TOKEN', '')
 DRY_RUN = os.environ.get('MONITOR_DRY_RUN', '') not in ('', '0', 'false')
 API = 'https://api.github.com'
 BOT = 'github-actions[bot]'
-USER_AGENT = 'outbound-utm-tagger-monitor/1.0 (+https://github.com/daniowensSEO/outbound-utm-tagger)'
+USER_AGENT = 'local-pr-outbound-utm-tagger-monitor/1.0 (+https://github.com/daniowensSEO/local-pr-outbound-utm-tagger)'
 
 LABEL = 'monitor'
 LABELS = {

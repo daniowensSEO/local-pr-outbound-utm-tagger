@@ -1,0 +1,11 @@
+# The "New issue" chooser. Support questions belong on the WordPress.org forum, where authors who use
+# the free directory are expected to help; GitHub issues are for confirmed bugs. Security reports go
+# through private vulnerability reporting, never a public issue.
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question or get help
+    url: https://wordpress.org/support/plugin/local-pr-outbound-utm-tagger/
+    about: Please use the WordPress.org support forum for questions and setup help.
+  - name: Report a security problem
+    url: https://github.com/daniowensSEO/local-pr-outbound-utm-tagger/security/advisories/new
+    about: Report it privately here. Please don't open a public issue for security problems.

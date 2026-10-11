@@ -47,7 +47,7 @@ jobs:
   monitor:
     name: Check and alert
     # Never in a fork: it would watch this plugin and open issues there.
-    if: github.repository == 'daniowensSEO/outbound-utm-tagger'
+    if: github.repository == 'daniowensSEO/local-pr-outbound-utm-tagger'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

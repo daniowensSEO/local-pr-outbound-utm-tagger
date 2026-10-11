@@ -1,0 +1,59 @@
+name: Bug report
+description: Something in the plugin doesn't work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. For questions or setup help, please use the
+        [WordPress.org support forum](https://wordpress.org/support/plugin/local-pr-outbound-utm-tagger/) instead.
+        Found a security problem? Please don't use this form:
+        [report it privately](https://github.com/daniowensSEO/local-pr-outbound-utm-tagger/security/advisories/new).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead? A link to an example page helps.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Settings > Outbound UTMs: ...
+        2. Open a page with a link to ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: 0.2.2
+    validations:
+      required: true
+  - type: input
+    id: wp-version
+    attributes:
+      label: WordPress version
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+  - type: dropdown
+    id: mode
+    attributes:
+      label: How UTM codes are added
+      options:
+        - HTML (Visible on the Page)
+        - JavaScript (Not Visible on the Page)
+        - Not sure
+        - Not sure
+  - type: textarea
+    id: other
+    attributes:
+      label: Anything else?
+      description: Caching or security plugins, page builders, browser console errors.
