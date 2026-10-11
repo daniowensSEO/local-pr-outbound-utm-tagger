@@ -268,6 +268,10 @@ class Forum(Base):
         self.topic(0)
         self.run_checks()
         self.assertEqual(len(self.acts('OPEN  [wporg-topic-help-me]')), 1, self.logs)
+        opened = self.alerts.get('wporg-topic-help-me')
+        self.assertEqual(opened['title'], 'WordPress.org support topic, opened 2026-10-12')
+        for copied in ('Help me', 'Someone'):  # the forum title and poster stay out of the public issue
+            self.assertNotIn(copied, opened['title'] + opened['body'])
         self.again()
 
         self.topic(1, [(101, 'daniowens')])  # her own reply: no email
@@ -278,7 +282,7 @@ class Forum(Base):
         self.topic(2, [(101, 'daniowens'), (102, 'someone')])  # their reply: email
         self.run_checks()
         self.assertEqual(len(self.acts('NOTE  [wporg-topic-help-me]')), 1, self.logs)
-        self.assertIn('`someone`', self.acts('NOTE  [wporg-topic-help-me]')[0])
+        self.assertNotIn('someone', self.acts('NOTE  [wporg-topic-help-me]')[0].lower())
         self.again()
 
         self.topic(2, [(101, 'daniowens'), (102, 'someone')], 'resolved', unresolved=False)
@@ -364,6 +368,7 @@ class Forum(Base):
         body = self.alerts.get('wporg-review-meh')['body']
         self.assertIn('2 of 5 stars', body)
         self.assertNotIn('Hello, this is', body)
+        self.assertEqual(self.alerts.get('wporg-review-meh')['title'], 'WordPress.org review, opened 2026-10-12, 2 of 5 stars')
         self.again()
 
         self.world.pages[FORUM + 'reviews/feed/'] = (200, rss(review.replace('Replies: 0', 'Replies: 1')))
@@ -429,7 +434,7 @@ class Forum(Base):
         self.run_checks()
         notes = self.acts('NOTE  [wporg-topic-help-me]')
         self.assertEqual(len(notes), 1, self.logs)
-        self.assertIn('`helper`', notes[0])
+        self.assertIn('New reply on', notes[0])  # one new reply (the approved one), named by no one
         self.assertIn(m.topic_url('help-me') + 'page/3/?output_format=md', self.world.calls)
         self.again()
 

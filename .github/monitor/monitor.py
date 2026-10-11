@@ -21,11 +21,11 @@ body too. A check that fails (after retries) fails the run and opens a "monitor 
 closed by the next clean run, so a broken monitor doesn't go quiet. While that issue is open, runs
 pass, so GitHub's own failure emails don't repeat on top of it.
 
-Forum text is written by anyone, so it is treated as untrusted. Alerts link to posts and never quote
-them (a quote would stay in the issue and its edit history, and be republished if the repository went
-public); the titles and names they show are cleaned, sent as JSON through the API, and names go in
-inline code (no mentions, links or HTML). The links in alerts are rebuilt from slugs that passed a
-strict pattern. Nothing here runs a shell.
+Forum text is written by anyone, so it is treated as untrusted. Alerts link to posts and never copy
+their text, titles or posters' names (the repository is public, and anything copied would stay in its
+issues and their edit history); the links are rebuilt from slugs that passed a strict pattern. Other
+strings from WordPress.org are cleaned, sent as JSON through the API, and shown as inline code (no
+mentions, links or HTML). Nothing here runs a shell.
 
 Standard library only, and it writes no files: everything goes to stdout. MONITOR_DRY_RUN=1 prints what
 would happen and changes nothing on GitHub (without a GITHUB_TOKEN it also assumes no alerts exist yet).
@@ -218,13 +218,9 @@ def clean(text, limit=None):
 
 
 def inline(text, limit=80):
-    """A short untrusted string (a name) as inline code."""
+    """A short untrusted string as inline code."""
     text = clean(text, limit).replace('`', "'")
     return f'`{text}`' if text else '`(unknown)`'
-
-
-def title_text(text, limit=90):
-    return clean(text, limit) or '(no title)'
 
 
 # ---------------------------------------------------------------- GitHub
@@ -684,20 +680,23 @@ def handle_post(alerts, item, kind, resolved, today):
         if stars is not None:
             text += f'Rating: **{stars} of 5 stars**\n\n'
         when = item['date'].strftime('%Y-%m-%d %H:%M UTC') if item['date'] else 'an unknown date'
-        text += f'Opened by {inline(item["author"])} on {when}. Read it on WordPress.org.\n\n'
+        text += f'Opened on {when}. Read it on WordPress.org.\n\n'
         if replies:
-            text += f'Replies so far: {replies}, the latest from {inline(last_by)}.\n\n'
+            text += f'Replies so far: {replies}.\n\n'
         text += (f'Reply on WordPress.org, logged in as `{AUTHOR}`. ')
         text += ('This issue closes itself once your reply is the latest post.' if kind == 'review' else
                  'This issue closes itself when the topic is marked resolved.')
-        title = f'WordPress.org {noun}: {title_text(item["title"])}'
+        # A fixed title: forum titles are written by strangers and would stay in this public repository.
+        title = f'WordPress.org {noun}' + (f', opened {item["date"]:%Y-%m-%d}' if item['date'] else '')
+        if stars is not None:
+            title += f', {stars} of 5 stars'
         alerts.open(key, title, text, ['wporg-review' if kind == 'review' else 'wporg-support'], new_state)
         return
 
     others = [who for who in fresh if not by_author(who)]
     if others:
         what = 'New reply' if len(others) == 1 else f'{len(others)} new replies'
-        alerts.comment(key, f'{what} on {url}, the latest from {inline(others[-1])}.',
+        alerts.comment(key, f'{what} on {url}.',
                        reopen=not (kind == 'topic' and resolved))
     alerts.update(key, state=new_state)
     if kind == 'review' and not others and replies and by_author(last_by) and issue['state'] == 'open':
