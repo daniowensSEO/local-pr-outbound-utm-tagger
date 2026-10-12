@@ -16,3 +16,5 @@ phpunit.xml.dist
 /build
 .nvmrc
 .gitleaks.toml
+# The license text is for GitHub; the plugin header and readme already state the license.
+/LICENSE
