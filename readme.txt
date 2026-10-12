@@ -30,6 +30,10 @@ Links that already carry a `utm_` parameter are never changed, and links to your
 * Add the CSS class `noutm` to a link (or a block containing it) to skip it.
 * On SiteGround, saving clears the Speed Optimizer cache automatically; elsewhere, clear your page cache after saving.
 
+**From Local PR**
+
+Outbound UTM Tagger is one of [Local PR's free SEO and AI search tools](https://localpr.com/tools/?utm_source=wordpress.org&utm_medium=referral&utm_campaign=local-pr-outbound-utm-tagger).
+
 == Installation ==
 
 1. Upload the plugin to `/wp-content/plugins/` or install it through the Plugins screen.
