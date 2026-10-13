@@ -8,7 +8,7 @@
       "id": "reminder-ship-0.2.3",
       "date": "2026-11-09",
       "title": "Reminder: ship 0.2.3 before WordPress 7.2 comes out (scheduled December 8)",
-      "body": "WordPress 7.2 is scheduled for **December 8, 2026** (release candidate 1 on November 17). Once it ships, sites on 7.2 see the plugin as \"Untested with your version of WordPress\", and Plugin Check fails CI on the old \"Tested up to\".\n\n1. Start a release branch from `main` with the 0.2.3 changes (the `{path}` fix and the settings styles).\n2. From 7.2 RC1, test against it and set \"Tested up to: 7.2\".\n3. CI, the dry run, then tag `0.2.3`.\n\nClose this issue when 0.2.3 is on WordPress.org."
+      "body": "WordPress 7.2 is scheduled for **December 8, 2026** (release candidate 1 on November 17). Once it ships, sites on 7.2 see the plugin as \"Untested with your version of WordPress\", and Plugin Check fails CI on the old \"Tested up to\".\n\n**What goes into 0.2.3:**\n- The `{path}` fix: paths with percent-encoded characters are no longer cut short (`/caf%C3%A9/` became `/caf`).\n- The settings screen's inline styles move into the stylesheet (no visible change), plus the two small fixes the tests found.\n- \"Tested up to: 7.2\".\n- Plugin URI: a page about the plugin on localpr.com (the page has to exist first).\n- A credit line at the bottom of the plugin's own settings page only (mockups first).\n- Author URI: https://localpr.com/dani-owens/\n\n**Steps:**\n1. Start a release branch from `main` with the changes above.\n2. From 7.2 RC1, test against it and set \"Tested up to: 7.2\".\n3. CI, the dry run, then tag `0.2.3`.\n\nClose this issue when 0.2.3 is on WordPress.org."
     }
   ]
 }
